@@ -13,6 +13,15 @@ A portfolio holds some stocks and some cash, and aims for an allocation: say 25 
    - [0002](design/adr/0002-prices-live-in-the-market.md): prices live in the market, not in the portfolio.
    - [0003](design/adr/0003-a-library-not-an-application.md): a library, not an application.
 
+## Running it
+
+```sh
+mix setup   # dependencies, and the pre-commit hook: format, Credo, Dialyzer
+mix test
+```
+
+Erlang and Elixir versions are pinned in `.tool-versions` (asdf). CI runs the tests on every push to `main`.
+
 ## How it was built
 
 Domain first, then tests, then code: the documentation above came before any line of Elixir, and every test names the rule or invariant it proves.

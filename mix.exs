@@ -9,6 +9,7 @@ defmodule Portfolio.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      aliases: aliases(),
       # The PLTs live in priv/plts, so CI can cache them between runs.
       dialyzer: [plt_local_path: "priv/plts", plt_core_path: "priv/plts"]
     ]
@@ -19,6 +20,12 @@ defmodule Portfolio.MixProject do
     [
       extra_applications: [:logger]
     ]
+  end
+
+  # `mix setup` after cloning: fetches the dependencies and turns on the
+  # pre-commit hook (format, Credo, Dialyzer) versioned in .githooks/.
+  defp aliases do
+    [setup: ["deps.get", "cmd git config core.hooksPath .githooks"]]
   end
 
   # The scenarios and the invariant checkers are compiled for the tests only.

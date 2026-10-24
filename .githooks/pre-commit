@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+# Runs before every commit; any failure stops it.
+# Activated by `mix setup` (git config core.hooksPath .githooks).
+set -e
+
+echo "pre-commit: mix format --check-formatted"
+mix format --check-formatted
+
+echo "pre-commit: mix credo --strict"
+mix credo --strict
+
+echo "pre-commit: mix dialyzer"
+mix dialyzer --quiet
