@@ -1,6 +1,6 @@
 defmodule Portfolio.Test.Scenarios do
   @moduledoc """
-  The scenarios S1–S10 of `docs/test-plan.md`, as literal data.
+  The scenarios S1–S10 of `design/test-plan.md`, as literal data.
 
   Every number was computed beforehand with exact decimals, and none is derived
   from the code under test: a scenario that "starts after" another one writes

@@ -1,6 +1,6 @@
 defmodule Portfolio.Test.Invariants do
   @moduledoc """
-  One checker per invariant INV1–INV7 of `docs/domain-model.md`.
+  One checker per invariant INV1–INV7 of `design/domain-model.md`.
 
   Each returns `:ok` or `{:error, reason}`. They do their own arithmetic and do
   not call `Portfolio.apply_trades/2`, so a bug in the code under test cannot

@@ -1,5 +1,5 @@
 defmodule PortfolioTest do
-  @moduledoc "Building a portfolio: T1–T5 of `docs/test-plan.md`."
+  @moduledoc "Building a portfolio: T1–T5 of `design/test-plan.md`."
   use ExUnit.Case, async: true
 
   import Portfolio.Test.Helpers

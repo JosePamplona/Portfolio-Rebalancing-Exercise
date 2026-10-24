@@ -4,7 +4,7 @@ defmodule Portfolio do
   aim for (an allocation).
 
   A portfolio can only be built through `new/1`, which enforces R1–R4 of
-  `docs/domain-model.md`, so every `%Portfolio{}` that exists is valid.
+  `design/domain-model.md`, so every `%Portfolio{}` that exists is valid.
 
   Holdings map a ticker to a quantity of shares; the allocation maps a ticker to
   a weight. Prices are not stored here: they come from the market each rebalance
@@ -23,7 +23,7 @@ defmodule Portfolio do
   @enforce_keys [:holdings, :cash, :allocation]
   defstruct [:holdings, :cash, :allocation]
 
-  @typedoc "One error per line of the *Errors* table in `docs/domain-model.md`."
+  @typedoc "One error per line of the *Errors* table in `design/domain-model.md`."
   @type error ::
           {:weight_out_of_range, ticker()}
           | {:weights_do_not_sum_to_one, Decimal.t()}

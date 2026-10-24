@@ -1,5 +1,5 @@
 defmodule Portfolio.Test.Helpers do
-  @moduledoc "Small builders shared by the tests, so each test reads as its row in `docs/test-plan.md`."
+  @moduledoc "Small builders shared by the tests, so each test reads as its row in `design/test-plan.md`."
 
   alias Portfolio.{Stock, Trade}
 

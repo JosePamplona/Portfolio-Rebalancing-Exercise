@@ -1,5 +1,5 @@
 defmodule Portfolio.RebalanceTest do
-  @moduledoc "Rebalancing: T6–T16 of `docs/test-plan.md`."
+  @moduledoc "Rebalancing: T6–T16 of `design/test-plan.md`."
   use ExUnit.Case, async: true
 
   import Portfolio.Test.Helpers
@@ -163,7 +163,7 @@ defmodule Portfolio.RebalanceTest do
     end
   end
 
-  describe "T16 the worked example of docs/domain-model.md" do
+  describe "T16 the worked example of design/domain-model.md" do
     test "day 1 (S1): bought from cash" do
       assert {:ok, trades} = rebalance("S1")
 

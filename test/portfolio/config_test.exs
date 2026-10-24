@@ -1,5 +1,5 @@
 defmodule Portfolio.ConfigTest do
-  @moduledoc "Configuration: T28 of `docs/test-plan.md`."
+  @moduledoc "Configuration: T28 of `design/test-plan.md`."
   use ExUnit.Case, async: true
 
   alias Portfolio.Config

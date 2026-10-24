@@ -1,5 +1,5 @@
 defmodule Portfolio.ApplyTradesTest do
-  @moduledoc "Applying trades: T17–T20 of `docs/test-plan.md`."
+  @moduledoc "Applying trades: T17–T20 of `design/test-plan.md`."
   use ExUnit.Case, async: true
 
   import Portfolio.Test.Helpers

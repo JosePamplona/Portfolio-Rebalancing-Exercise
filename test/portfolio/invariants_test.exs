@@ -1,6 +1,6 @@
 defmodule Portfolio.InvariantsTest do
   @moduledoc """
-  Invariants: T21–T27 and T29 of `docs/test-plan.md`.
+  Invariants: T21–T27 and T29 of `design/test-plan.md`.
 
   Each invariant is checked on every scenario S1–S10. Then its checker is run
   against a plan broken on purpose, and must catch it: a checker that never
