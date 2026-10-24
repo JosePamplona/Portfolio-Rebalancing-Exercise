@@ -5,10 +5,12 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  # The same checks as the pre-commit hook, which a commit can skip with
+  # --no-verify: here nothing reaches main without them.
+  checks:
     runs-on: ubuntu-24.04
     env:
-      MIX_ENV: test
+      MIX_ENV: dev
     steps:
       - uses: actions/checkout@v4
 
@@ -23,7 +25,38 @@ jobs:
           path: |
             deps
             _build
-          key: mix-${{ runner.os }}-${{ hashFiles('.tool-versions', 'mix.lock') }}
+          key: mix-dev-${{ runner.os }}-${{ hashFiles('.tool-versions', 'mix.lock') }}
+
+      # Building the PLTs takes minutes; they only change with the toolchain or the deps.
+      - uses: actions/cache@v4
+        with:
+          path: priv/plts
+          key: plts-${{ runner.os }}-${{ hashFiles('.tool-versions', 'mix.lock') }}
+
+      - run: mix deps.get
+      - run: mix format --check-formatted
+      - run: mix compile --warnings-as-errors
+      - run: mix credo --strict
+      - run: mix dialyzer --format github
+
+  test:
+    runs-on: ubuntu-24.04
+    env:
+      MIX_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: mix-test-${{ runner.os }}-${{ hashFiles('.tool-versions', 'mix.lock') }}
 
       - run: mix deps.get
       - run: mix compile --warnings-as-errors
