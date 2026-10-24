@@ -22,3 +22,6 @@ erl_crash.dump
 # Ignore package tarball (built via "mix hex.build").
 portfolio-*.tar
 
+
+# Dialyzer PLTs, built locally and cached in CI.
+/priv/plts/

@@ -8,6 +8,7 @@ defmodule Portfolio.Test.Invariants do
   `Portfolio.rebalance/3`, because idempotence is a property of the rebalance.
   """
 
+  alias Portfolio.Test.Helpers
   alias Portfolio.Trade
 
   @doc "INV1: the portfolio value is the same before and after the trades, exactly."
@@ -69,7 +70,7 @@ defmodule Portfolio.Test.Invariants do
 
   @doc "INV6: two runs over the same input, written in different orders, gave the same trades."
   def same_trades(trades_a, trades_b) do
-    if Portfolio.Test.Helpers.comparable(trades_a) == Portfolio.Test.Helpers.comparable(trades_b),
+    if Helpers.comparable(trades_a) == Helpers.comparable(trades_b),
       do: :ok,
       else: {:error, {:different_trades, trades_a, trades_b}}
   end

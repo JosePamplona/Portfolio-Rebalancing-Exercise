@@ -8,7 +8,9 @@ defmodule Portfolio.MixProject do
       elixir: "~> 1.19",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      # The PLTs live in priv/plts, so CI can cache them between runs.
+      dialyzer: [plt_local_path: "priv/plts", plt_core_path: "priv/plts"]
     ]
   end
 
@@ -27,7 +29,9 @@ defmodule Portfolio.MixProject do
   defp deps do
     [
       # Exact decimal arithmetic: no floating point touches money or quantities.
-      {:decimal, "~> 2.1"}
+      {:decimal, "~> 2.1"},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
     ]
   end
 end
