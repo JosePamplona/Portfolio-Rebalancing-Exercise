@@ -4,6 +4,9 @@ defmodule PortfolioTest do
 
   import Portfolio.Test.Helpers
 
+  # The example in the moduledoc is the worked example, day 2: it must stay true.
+  doctest Portfolio
+
   defp new(holdings, cash, allocation) do
     Portfolio.new(holdings: decimals(holdings), cash: d(cash), allocation: decimals(allocation))
   end

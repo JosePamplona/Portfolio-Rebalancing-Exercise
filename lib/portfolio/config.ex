@@ -20,5 +20,16 @@ defmodule Portfolio.Config do
   The error is a message naming the variable, for the boot to stop with.
   """
   @spec parse_share_precision(String.t() | nil) :: {:ok, non_neg_integer()} | {:error, String.t()}
-  def parse_share_precision(_raw), do: raise("not implemented")
+  def parse_share_precision(nil), do: {:ok, @default_share_precision}
+
+  def parse_share_precision(raw) when is_binary(raw) do
+    # Integer.parse/1 alone would read "2.5" as 2: the whole string must be the number.
+    case Integer.parse(raw) do
+      {precision, ""} when precision >= 0 ->
+        {:ok, precision}
+
+      _ ->
+        {:error, "SHARE_PRECISION must be a whole number, 0 or more; got #{inspect(raw)}"}
+    end
+  end
 end

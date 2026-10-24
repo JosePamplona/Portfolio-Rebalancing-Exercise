@@ -12,5 +12,5 @@ defmodule Portfolio.Stock do
 
   @doc "The last available price of one share."
   @spec current_price(t()) :: Decimal.t()
-  def current_price(_stock), do: raise("not implemented")
+  def current_price(%__MODULE__{price: price}), do: price
 end

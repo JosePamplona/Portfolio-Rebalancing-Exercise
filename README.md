@@ -2,12 +2,12 @@
 
 A portfolio holds some stocks and some cash, and aims for an allocation: say 25 % AAPL, 25 % MSFT, 50 % NVDA. Prices move, quantities do not, and the real weights drift away from the allocation. This module computes the trades that bring the portfolio back to it, without inventing or losing a cent or a fraction of a share.
 
-> **Status: design.** The domain is written down. The tests, and then the code, are derived from it next.
+The answer to the exercise is `Portfolio.rebalance/3` ([`lib/portfolio.ex`](lib/portfolio.ex)), computed in [`lib/portfolio/rebalance.ex`](lib/portfolio/rebalance.ex).
 
 ## Reading order
 
 1. [`CONTEXT.md`](CONTEXT.md): the domain's language. One word per concept, and the synonyms it rules out.
-2. [`design/domain-model.md`](design/domain-model.md): the building blocks, the numbered rules and invariants every test cites, a worked example with exact numbers, and the planned structure.
+2. [`design/domain-model.md`](design/domain-model.md): the building blocks, the numbered rules and invariants every test cites, a worked example with exact numbers, and the structure.
 3. [`design/adr/`](design/adr/): the decisions a reader could wonder about.
    - [0001](design/adr/0001-truncate-to-share-precision.md): quantities are truncated to the share precision, and the rest stays as cash.
    - [0002](design/adr/0002-prices-live-in-the-market.md): prices live in the market, not in the portfolio.

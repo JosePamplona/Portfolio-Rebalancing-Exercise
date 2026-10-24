@@ -130,7 +130,7 @@ The share precision depends on the broker, so it is configured, not written in t
 
 The environment is read once, at boot, in `config/runtime.exs`, which hands the raw value to `Portfolio.Config` to parse and check. An invalid value stops the boot with a message naming the variable, rather than letting a rebalance fail later. The domain never reads the environment itself: a rebalance takes the precision as a parameter, defaulting to the configured value. That keeps it pure, and lets the tests pass each precision explicitly.
 
-## Planned structure
+## Structure
 
 A plain Elixir library, no web layer ([ADR 0003](adr/0003-a-library-not-an-application.md)). One module per building block, and the computation as a pure function apart from the aggregate:
 
