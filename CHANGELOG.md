@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-24
+
 ### Added
 
 - The domain written down before any code: the glossary (`CONTEXT.md`), the
@@ -43,3 +45,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`design/llm-conversations/`).
 - The MIT license, and the README's badges: license, release, last commit
   and CI.
+
+[Unreleased]: https://github.com/JosePamplona/Portfolio-Rebalancing-Exercise/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/JosePamplona/Portfolio-Rebalancing-Exercise/releases/tag/v0.1.0
