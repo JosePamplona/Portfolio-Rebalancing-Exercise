@@ -30,3 +30,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Credo and Dialyzer, a pre-commit hook running them with the formatter
   (`mix setup` turns it on), and CI running the same checks and the tests on
   every push to `main`.
+- The README says what the repository answers, and walks through the worked
+  example step by step in IEx.
