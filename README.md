@@ -1,5 +1,10 @@
 # Portfolio rebalancing
 
+[![License](https://img.shields.io/github/license/JosePamplona/Portfolio-Rebalancing-Exercise?style=flat-square)](https://github.com/JosePamplona/Portfolio-Rebalancing-Exercise/blob/main/LICENSE)
+[![Release](https://img.shields.io/github/v/release/JosePamplona/Portfolio-Rebalancing-Exercise?style=flat-square&color=lightgray)](https://github.com/JosePamplona/Portfolio-Rebalancing-Exercise/releases/latest)
+[![Last Updated](https://img.shields.io/github/last-commit/JosePamplona/Portfolio-Rebalancing-Exercise.svg?style=flat-square)](https://github.com/JosePamplona/Portfolio-Rebalancing-Exercise/commits/main)
+[![CI](https://github.com/JosePamplona/Portfolio-Rebalancing-Exercise/actions/workflows/ci.yml/badge.svg)](https://github.com/JosePamplona/Portfolio-Rebalancing-Exercise/actions/workflows/ci.yml)
+
 This repository is the solution to a technical exercise: build a `Portfolio` with a collection of stocks and a target allocation, and a method that says which stocks to sell and which to buy to bring it back to that allocation.
 
 A portfolio holds some stocks and some cash, and aims for an allocation: say 25 % AAPL, 25 % MSFT, 50 % NVDA. Prices move, quantities do not, and the real weights drift away from the allocation. This module computes the trades that bring the portfolio back to it, without inventing or losing a cent or a fraction of a share.
@@ -176,4 +181,4 @@ The errors, rules and invariants behind each of these are in [`design/domain-mod
 
 Domain first, then tests, then code: the documentation above came before any line of Elixir, and every test names the rule or invariant it proves.
 
-An LLM (Claude) was used as a pair throughout, as the exercise allows. The conversations will be shared in [`design/llm-conversations/`](design/llm-conversations/).
+An LLM (Claude) was used as a pair throughout, as the exercise allows. The whole conversation, from reading the exercise to this README, is in [`design/llm-conversations/`](design/llm-conversations/2026-10-24-claude-code.txt), as Claude Code exported it.

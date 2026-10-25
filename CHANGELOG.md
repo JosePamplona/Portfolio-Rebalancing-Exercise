@@ -39,3 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   shows money and quantities exact, and is the only place weights become
   percentages. `Portfolio.Report.print/3` writes it to the console and
   returns `:ok`, with no dependency added.
+- The conversation with the LLM that helped build it, as the exercise asks
+  (`design/llm-conversations/`).
+- The MIT license, and the README's badges: license, release, last commit
+  and CI.

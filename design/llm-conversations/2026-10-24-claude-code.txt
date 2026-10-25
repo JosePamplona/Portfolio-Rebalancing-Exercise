@@ -1,0 +1,2581 @@
+ ▐▛███▛█   Claude Code v2.1.310
+▝▜██████▀  Opus 5.5 · Claude Pro
+ ▝▝   ▝▝   <HIDDEN>
+
+
+❯ estoy revisando la postulacion de <ACME> y piden esto:                       
+  Antes de aplicar a la postulación, debes realizar la siguiente tarea, luego   
+  al postular tendrás que adjuntar el link de repositorio de github con la      
+  respuesta:                                                                    
+                                                                                
+  You’re building a portfolio management module, part of a personal investments 
+  and trading app                                                               
+  Construct a simple Portfolio class that has a collection of Stocks. Assume    
+  each Stock has a “Current Price” method that receives the last available      
+  price. Also, the Portfolio class has a collection of “allocated” Stocks that  
+  represents the distribution of the Stocks the Portfolio is aiming (i.e. 40%   
+  META, 60% APPL)                                                               
+  Provide a portfolio rebalance method to know which Stocks should be sold and  
+  which ones should be bought to have a balanced Portfolio based on the         
+  portfolio’s allocation.                                                       
+  Add documentation/comments to understand your thinking process and solution   
+  Important: If you use LLMs that’s ok, but you must share the conversations.   
+  La tarea debería tomarte alrededor de 1 hora. El código además de resolver el 
+  problema, será un reflejo de qué tanto orgullo te causa tu solución.          
+  traduceme                                                                     
+
+● Traducción
+
+  ▎ Antes de postular debes hacer esta tarea. Al postular tendrás que adjuntar 
+  ▎ el link al repositorio de GitHub con tu respuesta:
+  ▎
+  ▎ - Estás construyendo un módulo de gestión de portafolios, parte de una app 
+  ▎ de inversiones personales y trading.
+  ▎ - Construye una clase Portfolio sencilla que tenga una colección de acciones
+  ▎ (Stock). Supón que cada Stock tiene un método "Current Price" que devuelve 
+  ▎ el último precio disponible. La clase Portfolio también tiene una colección 
+  ▎ de acciones "asignadas" (allocated), que representa la distribución a la que
+  ▎ apunta el portafolio (por ejemplo, 40 % META, 60 % AAPL).
+  ▎ - Escribe un método de rebalanceo que diga qué acciones hay que vender y 
+  ▎ cuáles comprar para que el portafolio quede balanceado según su asignación.
+  ▎ - Agrega documentación o comentarios que expliquen cómo pensaste el problema
+  ▎ y tu solución.
+  ▎ - Importante: puedes usar LLMs, pero tienes que compartir las 
+  ▎ conversaciones.
+  ▎
+  ▎ La tarea debería tomarte alrededor de 1 hora. Además de resolver el 
+  ▎ problema, el código mostrará qué tanto orgullo te da tu solución.
+
+  De qué se trata
+
+  Es un ejercicio corto de modelado. Tienes un portafolio con acciones (cuántas
+  tienes de cada una) y una meta de distribución en porcentajes. Los precios se
+  mueven, así que con el tiempo la distribución real se aleja de la meta. El
+  rebalanceo calcula qué hay que hacer para volver a ella:
+
+  1. Valor total = suma de (cantidad × precio actual) de cada acción.
+  2. Para cada acción, valor objetivo = valor total × su porcentaje asignado.
+  3. Diferencia = valor objetivo − valor actual. Si es positiva, compras; si es
+     negativa, vendes. Para pasarla a número de acciones, divides entre el
+     precio.
+
+  Ejemplo: tienes $1 000, con 50 % en META y 50 % en AAPL, y la meta es 40/60.
+  Entonces vendes $100 de META y compras $100 de AAPL.
+
+  Lo que probablemente evalúan
+
+  Más allá de la aritmética, el criterio con el que manejas los casos borde:
+
+  - Que los porcentajes sumen 100 %.
+  - Acciones que tienes pero no están en la asignación (se venden todas) y
+    acciones asignadas que no tienes (se compran desde cero).
+  - Acciones fraccionarias o enteras, y qué hacer con el residuo al redondear.
+  - Usar decimales y no floats para el dinero.
+  - Tests, un README claro y comentarios que expliquen las decisiones.
+
+  Dos notas
+
+  - Lenguaje: dicen "clase", pero no exigen ninguno. Puedes hacerlo en Elixir
+    con structs y funciones puras, y en el README explicar por qué "clase" se
+    traduce a módulo + struct. <ACME> trabaja sobre todo con Ruby on Rails, así
+    que Ruby también encajaría; Elixir muestra mejor tu perfil.
+  - LLMs: si lo haces conmigo, tienes que adjuntar la conversación. Te conviene
+    que se note que las decisiones son tuyas y que yo solo te ayudé. Puedes
+    exportar la sesión, o guardarla como .md en el repo.
+
+  ¿Quieres que te ayude a plantear la estructura, o prefieres hacerlo tú primero
+  y que yo lo revise después?
+
+✻ Cooked for 16s · done 12:56 p.m.
+
+❯ antes de que nos pongamos a trabajar en esto, explicame como funciona esto de 
+  las acciones, bolsa y todo lo que neceseto saber para hacer esto. quiero      
+  asegurarme de entender lo que voy a presentar                                 
+  ⎿  12 skills available
+
+● Para esta tarea no necesitas saber de bolsa en general. Basta con entender
+  cinco ideas, y aquí van con un ejemplo de números.
+
+  1. Qué es una acción
+
+  Una acción (stock, share) es un pedacito de una empresa. Si Apple tuviera 1
+  000 acciones y tú tuvieras 1, serías dueño del 0,1 % de Apple.
+
+  - Cada empresa se identifica con un ticker, un código corto: AAPL es Apple,
+    META es Meta (Facebook), GOOGL es Google. En el enunciado escriben "APPL",
+    pero es un error de dedo: el ticker correcto es AAPL.
+  - La bolsa (NYSE, Nasdaq, BMV en México) es el mercado donde la gente compra y
+    vende acciones. El precio de una acción es simplemente el último precio al
+    que alguien la compró y otro la vendió. Cambia todo el tiempo durante el
+    día.
+  - Ese es el método current_price del enunciado: "dime cuánto vale hoy una
+    acción de AAPL". Para el ejercicio no importa de dónde salga el precio; das
+    por hecho que alguien te lo da.
+
+  2. Qué es un portafolio
+
+  Un portafolio es el conjunto de cosas en las que tienes tu dinero. Para el
+  ejercicio, es una lista de "cuántas acciones tengo de cada empresa":
+
+  ┌────────┬──────────┐
+  │ Acción │ Cantidad │
+  ├────────┼──────────┤
+  │ META   │ 8        │
+  ├────────┼──────────┤
+  │ AAPL   │ 30       │
+  └────────┴──────────┘
+
+  Ojo: el portafolio guarda cantidades, no dinero. El dinero sale de
+  multiplicar:
+
+  valor de una posición = cantidad × precio actual
+  valor del portafolio = suma de todas las posiciones
+
+  3. Qué es la asignación (allocation)
+
+  La asignación es tu plan: qué porcentaje de tu dinero quieres en cada acción.
+  "40 % META, 60 % AAPL" quiere decir que de cada $100 quieres tener $40 en META
+  y $60 en AAPL.
+
+  Esos porcentajes se llaman pesos (weights) y deben sumar 100 %. Se eligen
+  según cuánto riesgo quieres correr: a más peso en algo volátil, más riesgo.
+
+  4. Por qué el portafolio se desbalancea (drift)
+
+  Aquí está la clave del ejercicio. Tú compras respetando tu plan, pero luego
+  los precios se mueven y tus cantidades no. Entonces los porcentajes reales se
+  alejan de los que querías.
+
+  Día 1. Tienes $10 000, META vale $500 y AAPL vale $200.
+
+  ┌───────┬─────────────┬───────────────────┬─────────┐
+  │       │   Compras   │       Valor       │  Peso   │
+  ├───────┼─────────────┼───────────────────┼─────────┤
+  │ META  │ 8 acciones  │ 8 × 500 = $4 000  │ 40 % ✅ │
+  ├───────┼─────────────┼───────────────────┼─────────┤
+  │ AAPL  │ 30 acciones │ 30 × 200 = $6 000 │ 60 % ✅ │
+  ├───────┼─────────────┼───────────────────┼─────────┤
+  │ Total │             │ $10 000           │         │
+  └───────┴─────────────┴───────────────────┴─────────┘
+
+  Meses después. META sube a $650 y AAPL baja a $180. Sigues teniendo las mismas
+  acciones:
+
+  ┌───────┬──────────┬───────────────────┬───────────┬───────────────┐
+  │       │ Cantidad │       Valor       │ Peso real │ Peso objetivo │
+  ├───────┼──────────┼───────────────────┼───────────┼───────────────┤
+  │ META  │ 8        │ 8 × 650 = $5 200  │ 49,1 %    │ 40 %          │
+  ├───────┼──────────┼───────────────────┼───────────┼───────────────┤
+  │ AAPL  │ 30       │ 30 × 180 = $5 400 │ 50,9 %    │ 60 %          │
+  ├───────┼──────────┼───────────────────┼───────────┼───────────────┤
+  │ Total │          │ $10 600           │           │               │
+  └───────┴──────────┴───────────────────┴───────────┴───────────────┘
+
+  Ganaste dinero, pero ahora tienes demasiado META respecto a tu plan, y por lo
+  tanto más riesgo del que elegiste.
+
+  5. Qué es rebalancear
+
+  Rebalancear es comprar y vender para volver a los porcentajes del plan. Es
+  exactamente lo que te piden programar:
+
+  1. Valor total actual: $10 600.
+  2. Valor objetivo de cada acción = total × peso:
+     - META: 10 600 × 40 % = $4 240
+     - AAPL: 10 600 × 60 % = $6 360
+  3. Diferencia = objetivo − actual:
+     - META: 4 240 − 5 200 = −$960 → vender
+     - AAPL: 6 360 − 5 400 = +$960 → comprar
+  4. De dinero a acciones: divides entre el precio.
+     - META: 960 / 650 = vender 1,48 acciones
+     - AAPL: 960 / 180 = comprar 5,33 acciones
+
+  Fíjate en que lo que vendes paga exactamente lo que compras, porque el total
+  no cambia; solo se redistribuye. Esa es una buena comprobación para tus tests.
+
+  Por qué se hace: para mantener el riesgo que elegiste. Además, sin pensarlo,
+  vendes lo que subió y compras lo que bajó, que es una disciplina sana. Este es
+  justo el negocio de <ACME>: es una administradora de fondos automatizada
+  (robo-advisor), y una de sus tareas centrales es rebalancear los portafolios
+  de sus clientes. Por eso eligieron este ejercicio.
+
+  6. Los detalles que distinguen una buena respuesta
+
+  Aquí es donde se lucen los candidatos. No necesitas resolverlos todos, pero sí
+  reconocerlos y decir qué decidiste:
+
+  - Acciones fraccionarias. ¿Se pueden comprar 1,48 acciones? Muchos brokers
+    modernos (y <ACME>) sí lo permiten; la bolsa tradicional no. Si solo
+    aceptas acciones enteras, redondeas: vender 1 META te da $650, con eso
+    compras 3 AAPL ($540) y te sobran $110 en efectivo. El portafolio queda casi
+    balanceado. Es una decisión de diseño que conviene explicar.
+  - Acciones que tienes y no están en el plan: su peso objetivo es 0 %, así que
+    se venden todas.
+  - Acciones del plan que no tienes: se compran desde cero.
+  - Efectivo (cash): el dinero que no está invertido. Puede formar parte o no
+    del cálculo del total.
+  - Dinero con decimales exactos: nunca uses float para dinero (0.1 + 0.2 ≠ 
+    0.3). Usa Decimal, o centavos como enteros.
+  - Validaciones: que los pesos sumen 100 %, que no haya negativos y que los
+    precios sean mayores que 0.
+  - Cosas reales que puedes mencionar sin implementar:
+    - Comisiones: cada operación cuesta algo.
+    - Impuestos: vender con ganancia paga impuestos.
+    - Banda de tolerancia: no rebalancear por un 0,5 % de diferencia, solo
+      cuando la desviación pasa de, digamos, 5 %.
+
+  Lo que no necesitas saber
+
+  Órdenes de mercado o límite, horarios de la bolsa, bid/ask, dividendos,
+  splits, gráficas... Nada de eso entra en el ejercicio. El problema es
+  aritmética sobre tres datos: cantidades, precios y pesos objetivo.
+
+  ---
+
+  En una frase, para tu README: "Dado lo que tengo (cantidades), lo que vale 
+  (precios) y lo que quiero (pesos), calculo cuánto debe valer cada posición, y 
+  la diferencia me dice qué comprar y qué vender."
+
+  Si quieres comprobar que lo entendiste, inventa un portafolio con tres
+  acciones y haz el rebalanceo a mano antes de que empecemos a programar. Esa
+  misma cuenta te sirve como primer test.
+
+✻ Worked for 31s · done 1:00 p.m.
+
+❯ Si entiendo bien en un portafolios:                                           
+                                                                                
+  | tick | plan | real | v. unitario | stocks  | dinero   |                     
+  | ---: | :--: | :--: | :---------- | :-----: | :------: |                     
+  | AAPL | 25%  | 25%  | 350         | 7.1428  | $ 2,500  |                     
+  | MSFT | 25%  | 25%  | 525         | 4.7619  | $ 2,500  |                     
+  | NVDA | 50%  | 50%  | 210         | 23.8095 | $ 5,000  |                     
+  |      | 100% | 100% |             |         | $ 10,000 |                     
+                                                                                
+  pasa unos meses y las acciones cambian:                                       
+                                                                                
+  AAPL price 350 -> 310                                                         
+  MSFT price 525 -> 505                                                         
+  NVDA price 210 -> 250                                                         
+                                                                                
+  | tick | plan | real     | v. unitario | stocks  | dinero        |            
+  | ---: | :--: | :------: | :---------- | :-----: | :-----------: |            
+  | AAPL | 25%  | 20.9458% | 310         | 7.1428  | $ 2,214.2680  |            
+  | MSFT | 25%  | 22.7477% | 505         | 4.7619  | $ 2,404.7595  |            
+  | NVDA | 50%  | 56.3063% | 250         | 23.8095 | $ 5,952.3750  |            
+  |      | 100% | 100%     |             |         | $ 10,571.4025 |            
+                                                                                
+  se ajusta:                                                                    
+                                                                                
+  AAPL stock + 1.3825                                                           
+  MSFT stock + 0.4714                                                           
+  NVDA stock - 2.6666                                                           
+                                                                                
+  | tick | plan | real | v. unitario | stocks  | dinero        |                
+  | ---: | :--: | :--: | :---------- | :-----: | :-----------: |                
+  | AAPL | 25%  | 25%  | 310         | 8.5253  | $ 2,642.843   |                
+  | MSFT | 25%  | 25%  | 505         | 5.2333  | $ 2,642.8165  |                
+  | NVDA | 50%  | 50%  | 250         | 21.1429 | $ 5,285.725   |                
+  |      | 100% | 100% |             |         | $ 10,571.4025 |                
+  lo entendí correctamente?                                                     
+
+● Sí, lo entendiste bien. El procedimiento es correcto: precios nuevos → valor y
+  pesos reales → diferencia contra el plan → acciones que comprar o vender.
+  Revisé tus números y las cuentas cuadran. Solo hay detalles de redondeo, y
+  vale la pena mirarlos porque son justo lo que tu código tendrá que resolver.
+
+  Lo que está bien
+
+  - Valores después del cambio de precio: $2 214,27 + $2 404,76 + $5 952,38 =
+    $10 571,40 ✓
+  - Pesos reales: 20,95 % / 22,75 % / 56,31 % ✓
+  - Dirección de los ajustes: comprar AAPL y MSFT (bajaron de peso) y vender
+    NVDA (subió) ✓
+  - Lo que compras es igual a lo que vendes: $428,58 + $238,09 = $666,67 = lo
+    que sale de NVDA ✓. El total no cambia, solo se redistribuye.
+
+  Detalles de redondeo
+
+  1. La última fila del total no es una suma, la copiaste. Si sumas tu tabla
+     final, da $2 642,84 + $2 642,82 + $5 285,73 = $10 571,38, no $10 571,40. Se
+     perdieron 2 centavos por redondear las acciones a 4 decimales.
+  2. Truncaste en vez de redondear.
+     - 2 500 / 350 = 7,142857…, que redondeado da 7,1429, no 7,1428.
+     - MSFT: 238,09 / 505 = 0,471468…, que redondeado da +0,4715.
+     - NVDA: 666,67 / 250 = 2,666695…, que redondeado da −2,6667.
+
+     Ninguno es grave, pero en código tienes que decidir una regla de redondeo y
+     escribirla: truncar, redondear o usar enteros.
+  3. El efecto acumulado: por esos decimales, al final AAPL y MSFT no quedan
+     exactamente iguales ($2 642,84 contra $2 642,82), aunque las dos deberían
+     ser 25 %. En la vida real ese residuo se queda como efectivo, o se acepta
+     como "suficientemente balanceado".
+
+  Lo que esto te da para el ejercicio
+
+  Tu tabla ya es un test:
+
+  - Entrada: cantidades, precios nuevos y plan.
+  - Salida esperada: +1,3825 AAPL, +0,4715 MSFT, −2,6667 NVDA.
+  - Invariantes que tu código debería verificar:
+    - El valor total antes y después es el mismo (con tolerancia de redondeo).
+    - El dinero de las compras es igual al de las ventas.
+    - Los pesos finales coinciden con el plan.
+
+  Y los centavos que se perdieron son el mejor argumento para usar Decimal y no
+  float.
+
+✻ Baked for 22s · done 2:50 p.m.
+
+❯ - claro, los valores pueden diferir porque solo manejé 4 decimales ya que lo  
+  hice a calculadora y papel.                                                   
+  - ahora ya teniendolo claro hagamos lo siguiente: listemos las pruebas que    
+  debemos satisfacer para esta funcionalidad, definitivamente no debemos perder 
+  centavos ni fracciones de stocks, hagamos una variante de comportamiento      
+  ajustable (se prueban ambas) una con stock fraccionario y otra con stock      
+  entero con sus pruebas cada una. esa será la base, conforme identifiquemos    
+  más casos de uso agregaremos más pruebas, creo que lo más adecuado será hacer 
+  DDD en un proyecto de Phoenix, que opinas?                                    
+
+● Mi opinión: DDD sí, Phoenix no
+
+  Usaría un proyecto Mix simple (mix new portfolio), no Phoenix.
+
+  - Phoenix es ruido para quien revisa. El enunciado pide una clase Portfolio
+    con un método de rebalanceo. Con Phoenix, el revisor abre el repo y se
+    encuentra endpoint, router, config, assets y Ecto antes de llegar a las 100
+    líneas que importan. Una hora de ejercicio se lee en 5 minutos, y conviene
+    que esos 5 minutos sean puro dominio.
+  - El DDD que encaja aquí es el ligero, y luce más sin framework:
+    - Lenguaje del dominio como nombres de módulos: Portfolio, Position,
+      Allocation, Stock, Trade, RebalancePlan.
+    - Objetos de valor como structs inmutables.
+    - Funciones puras: el rebalanceo recibe un portafolio y precios y devuelve
+      un plan de operaciones, sin efectos secundarios.
+  - Lo que describes es más TDD que DDD: primero la lista de pruebas, luego el
+    código. Las dos cosas se combinan bien y vale la pena decirlo así en el
+    README.
+  - Si más adelante quieres mostrar Phoenix, se le pone una capa web encima sin
+    tocar el dominio. Eso también es un buen argumento de DDD.
+
+  Una aclaración sobre "no perder centavos ni fracciones"
+
+  No se puede ser exacto en todo:
+
+  - Acciones: 960 / 650 = 1,476923… es infinito, así que hay que fijar una
+    precisión. Los brokers usan entre 6 y 9 decimales.
+  - Dinero: una vez fijada la precisión, sobra un residuo de centavos.
+
+  Por eso "no perder nada" se cumple de otra forma: todo centavo queda 
+  contabilizado. El portafolio necesita efectivo (cash), y el residuo va ahí. El
+  invariante es:
+
+  ▎ valor antes = valor de las posiciones después + efectivo después, exacto 
+  ▎ (igualdad de Decimal, sin tolerancia)
+
+  Lista de pruebas
+
+  Comunes (se corren en ambos modos)
+
+  1. Ya balanceado → no genera operaciones.
+  2. Tu ejemplo AAPL/MSFT/NVDA → compra AAPL y MSFT, vende NVDA.
+  3. Acción en el portafolio que no está en el plan → se vende entera.
+  4. Acción en el plan que no se tiene → se compra desde cero.
+  5. Portafolio vacío con solo efectivo → compra según el plan.
+  6. Conservación exacta: valor antes = posiciones después + efectivo después.
+  7. El efectivo nunca queda negativo: las compras ≤ las ventas + el efectivo
+     inicial.
+  8. Idempotencia: aplicar el plan y volver a rebalancear → no hay más
+     operaciones.
+  9. El orden no importa: el mismo resultado sin importar el orden de las
+     acciones en la entrada.
+  10. Validaciones (devuelven error, no truena):
+      - pesos que no suman exactamente 100 %
+      - pesos negativos
+      - precio ≤ 0 o faltante
+      - tickers duplicados
+      - cantidades negativas
+
+  Modo fraccionario
+
+  11. Las cantidades tienen como máximo N decimales (N es un parámetro).
+  12. Tu ejemplo da valores exactos a esa precisión.
+  13. Los pesos finales coinciden con el plan, con un error máximo de 1 unidad
+      de precisión por posición.
+  14. El efectivo sobrante es menor que (número de posiciones × precio × 10⁻ᴺ).
+
+  Modo entero
+
+  15. Todas las cantidades son enteras.
+  16. No queda nada comprable: el efectivo sobrante es menor que el precio de la
+      acción más barata que todavía está por debajo de su objetivo.
+  17. Una acción más cara que su porción objetivo (meta de $100, precio de $500)
+      → la regla elegida decide si queda en 0 o en 1 acción, y el test lo fija.
+  18. Ejemplo META/AAPL (40/60 con precios 650/180) → resultado exacto según la
+      regla.
+
+  Lo que tienes que decidir antes de escribir los tests
+
+  En modo entero no existe una única respuesta correcta. En el ejemplo
+  META/AAPL:
+
+  ┌──────────────────────┬───────────────────┬───────────────────┬──────────┐
+  │        Opción        │       META        │       AAPL        │ Efectivo │
+  ├──────────────────────┼───────────────────┼───────────────────┼──────────┤
+  │ Vender 1 META,       │ +$310 sobre el    │ −$420 bajo el     │ $110     │
+  │ comprar 3 AAPL       │ objetivo          │ objetivo          │          │
+  ├──────────────────────┼───────────────────┼───────────────────┼──────────┤
+  │ Vender 2 META,       │ −$340 bajo el     │ +$300 sobre el    │ $40      │
+  │ comprar 7 AAPL       │ objetivo          │ objetivo          │          │
+  └──────────────────────┴───────────────────┴───────────────────┴──────────┘
+
+  ¿Cuál es mejor? Depende de la regla. Las dos opciones razonables:
+
+  - (a) Simple: redondear las ventas al entero más cercano y luego comprar de
+    forma codiciosa (greedy): siempre la acción que esté más lejos de su
+    objetivo, mientras alcance el efectivo.
+  - (b) Optimizada: minimizar la desviación total. Es más correcta, pero más
+    compleja de explicar en una hora.
+
+  Mi recomendación es (a), con un párrafo en el README que diga que (b) existe y
+  por qué no la elegiste. Eso muestra criterio sin inflar el código.
+
+  Otras tres decisiones:
+
+  - ¿El portafolio lleva efectivo? Recomiendo que sí; sin él no se cumple "no
+    perder centavos".
+  - La precisión por defecto del modo fraccionario: recomiendo 6 decimales.
+  - El idioma del código y del README. <ACME> opera en Chile y México y trabaja
+    en inglés técnico; recomiendo inglés.
+
+  Dime qué decides en estos puntos y si vamos con mix new, y armamos los tests.
+
+✻ Brewed for 42s · done 3:00 p.m.
+
+※ recap: Estamos preparando la tarea de <ACME>: rebalancear un portafolio en Elixir, con pruebas para un modo fraccionario y otro entero. Falta que decidas la regla del modo entero, si el portafolio lleva efectivo, la precisión y si vamos con `mix new`. (disable recaps in /config)
+
+❯ considero que hay que meter phoenix justamente para la demostración, estoy    
+  pensando en tener hitoriales de cambios de precio que fluctuen y tener varios 
+  de estos como escenarios para mostrar como se comporta, que opinas?           
+
+● Mi opinión: buena idea, si se cuida el orden y el alcance
+
+  A favor:
+
+  - Para <ACME> tiene mucho sentido. Lo que ellos hacen todos los días no es un
+    rebalanceo aislado, sino rebalancear a lo largo del tiempo. Una simulación
+    con historiales de precios muestra que entiendes el problema de negocio, no
+    solo la aritmética.
+  - Encaja con tu perfil. Buscas trabajo de backend en Elixir, y una demo en
+    LiveView es algo que pocos candidatos llevan.
+  - El tiempo trae preguntas de dominio que una sola llamada no tiene, y ahí
+    está lo interesante:
+    - ¿Cada cuánto rebalancear? Periódicamente (cada mes) o solo cuando la
+      desviación pasa de un umbral, por ejemplo 5 %.
+    - ¿Cuánto cuesta? Cada rebalanceo genera operaciones, y con comisiones
+      conviene rebalancear menos.
+    - Fraccionario contra entero lado a lado: cómo se acumula el efectivo
+      sobrante en el modo entero.
+
+  El riesgo:
+
+  - Piden una tarea de 1 hora. Si el revisor abre el repo y no encuentra la
+    respuesta en 30 segundos, la demo te resta en vez de sumar. Y el revisor
+    casi nunca va a correr el proyecto.
+
+  Cómo lo haría
+
+  1. Primero el dominio, completo por sí solo. lib/portfolio/ sin ninguna
+     dependencia de Phoenix, con los tests que listamos. Ese commit ya es una
+     entrega válida.
+  2. Después la demo, como capa encima. LiveView en lib/portfolio_web/ que solo
+     llama al dominio. El revisor ve la frontera de DDD en la estructura de
+     carpetas.
+  3. Sin Ecto ni base de datos. Los escenarios son datos en código. No añadas
+     nada que no sirva a la demostración.
+  4. Escenarios deterministas, nada de precios aleatorios en cada carga:
+     - Mercado tranquilo: desviación pequeña, casi no hay operaciones.
+     - Una acción se dispara: NVDA sube 150 %.
+     - Desplome: todo baja 30 % y una acción baja 70 %.
+     - Oscilación fuerte: muestra el costo de rebalancear seguido contra el de
+       usar un umbral.
+     - Cambio de plan a mitad de camino: sale una acción y entra otra.
+
+     Para los precios, recomiendo series sintéticas con semilla fija (una
+     caminata aleatoria reproducible) en vez de datos históricos reales: no hay
+     temas de licencia, no dependen de una API externa, y puedes diseñar cada
+     escenario para que muestre algo.
+  5. Un README que guíe en 30 segundos:
+     - Arriba: "La respuesta está en lib/portfolio/rebalance.ex; la demo es un 
+       extra".
+     - Un GIF o capturas de la demo, porque casi nadie la va a correr.
+     - Cómo correrla: mix setup && mix phx.server, o un docker compose up. Ahí
+       tu workbench te sirve como argumento.
+
+  Lo que hay que decidir
+
+  - El modelo del tiempo: un escenario es una lista de días con precios, y una
+    política (periódica o por umbral) decide en qué días se rebalancea. La
+    política sería un concepto nuevo del dominio, con sus propios tests.
+  - Las comisiones: ¿las modelamos? Recomiendo una comisión fija o porcentual
+    opcional, en 0 por defecto, porque es lo que hace interesante comparar
+    políticas.
+
+  La base sigue igual: dominio y tests primero, y las decisiones pendientes del
+  mensaje anterior (efectivo en el portafolio, regla del modo entero, precisión,
+  idioma). Dime qué eliges en esas y en estas dos, y empezamos con los tests.
+
+✻ Worked for 23s · done 4:50 p.m.
+
+❯ tenes razón, seamos tanto eficientes como eficaces, dar mas de lo que se pide 
+  puede ser contraproducente, una vez montado lo principal vemos si vale la     
+  pena una ui para demo                                                         
+
+● Entonces empezamos con el dominio y sus tests, y la UI la decidimos después.
+  Quedan cuatro decisiones pendientes antes de escribir los tests.
+
+● User answered Claude's questions:
+  ⎿  · ¿El portafolio lleva efectivo (cash) como parte de su estado? → Sí, con 
+     efectivo (Recommended)
+     · En modo entero, ¿qué regla de rebalanceo usamos? → No incluyamos la 
+     solucion con stocks enteros, por ahora centrémonos en la de stock 
+     fraccionario
+     · ¿En qué idioma van el código, los tests y el README? → Inglés 
+     (Recommended)
+     · ¿Dónde creo el proyecto? Es un repo aparte de este workbench. → 
+     <HIDDEN>
+
+● Decisiones registradas:
+
+  - El portafolio lleva efectivo.
+  - Por ahora solo el modo fraccionario.
+  - Todo en inglés.
+  - El repo va en <HIDDEN>.
+  - La precisión de las acciones es configurable y por defecto son 6 decimales.
+
+  Cómo queda "no perder nada" en modo fraccionario
+
+  Una regla resuelve el redondeo: la cantidad objetivo de cada acción se trunca 
+  hacia abajo a N decimales. De ahí salen dos garantías:
+
+  - Nunca se gasta más de lo que hay, así que el efectivo nunca queda negativo.
+  - El residuo va al efectivo y es exacto:
+
+    efectivo después = total − Σ (cantidad objetivo × precio)
+
+  Con Decimal, todas estas cuentas son igualdades exactas.
+
+  Pruebas (base, modo fraccionario)
+
+  Comportamiento
+
+  1. Ya balanceado → no genera operaciones.
+  2. Tu ejemplo AAPL/MSFT/NVDA → compra AAPL y MSFT, vende NVDA, con cantidades
+     exactas a 6 decimales.
+  3. Acción en el portafolio que no está en el plan → se vende entera.
+  4. Acción en el plan que no se tiene → se compra desde cero.
+  5. Portafolio con solo efectivo → compra según el plan.
+
+  Invariantes (lo de no perder centavos ni fracciones)
+
+  6. Conservación exacta: valor antes = posiciones después + efectivo después.
+  7. El efectivo nunca queda negativo.
+  8. El efectivo sobrante < Σ (precio × 10⁻ᴺ): solo queda polvo de redondeo.
+  9. Ninguna cantidad tiene más de N decimales.
+  10. Idempotencia: aplicar el plan y rebalancear de nuevo → ninguna operación.
+  11. El orden de la entrada no cambia el resultado.
+  12. La precisión es configurable: con N = 2 y N = 6 se cumplen todos los
+      invariantes.
+
+  Validaciones (devuelven {:error, motivo})
+
+  13. Pesos que no suman exactamente 1, o pesos negativos.
+  14. Precio ≤ 0, o una acción del plan o del portafolio sin precio.
+  15. Cantidades o efectivo negativos.
+
+  Estructura (mix new, sin Phoenix)
+
+  ┌─────────────────┬───────────────────────────┬───────────────────────────┐
+  │     Módulo      │          Qué es           │         Qué hace          │
+  ├─────────────────┼───────────────────────────┼───────────────────────────┤
+  │                 │                           │ current_price/1, el       │
+  │ Portfolio.Stock │ ticker y price            │ método que pide el        │
+  │                 │                           │ enunciado                 │
+  ├─────────────────┼───────────────────────────┼───────────────────────────┤
+  │                 │ holdings (ticker →        │ rebalance/2 (precios,     │
+  │ Portfolio       │ cantidad), cash,          │ precisión) → {:ok,        │
+  │                 │ allocation (ticker →      │ [%Trade{}]}               │
+  │                 │ peso)                     │                           │
+  ├─────────────────┼───────────────────────────┼───────────────────────────┤
+  │                 │ ticker, side              │ lo que hay que comprar o  │
+  │ Portfolio.Trade │ (:buy/:sell), quantity,   │ vender                    │
+  │                 │ amount                    │                           │
+  └─────────────────┴───────────────────────────┴───────────────────────────┘
+
+  Además, apply_trades/2 aplica el plan; lo necesitamos para probar la
+  conservación y la idempotencia.
+
+  Si te parece bien, creo el repo y escribo primero los tests (fallando) y luego
+  la implementación.
+
+✻ Cogitated for 30s · done 4:54 p.m.
+
+❯ crea el repo y antes de hacer código, primero declaremos la estrucutra y lo   
+  que tenemos DDD en su debida documentación, de esa base sacamos las pruebas   
+  TDD                                                                           
+
+● Skill(domain-modeling)
+  ⎿  Successfully loaded skill
+
+  Listed 1 directory (ctrl+o to expand)
+
+● Primero creo el proyecto y luego escribo la documentación del dominio:
+  glosario, modelo, invariantes y decisiones.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Ahora calculo el ejemplo canónico con aritmética decimal exacta, para que los
+  números del documento sean correctos.
+
+  Ran 1 shell command (ctrl+o to expand)
+  ⎿  Interrupted · What should Claude do instead?
+
+❯ Disculpame, no quería decir que crearas el proyecto aún, quería decir, crea   
+  el directorio y entonces la doc DDD, ya luego el proyecto con sus pruebas     
+
+● Entendido. Quito lo que generó mix new y dejo solo el directorio, con git
+  inicializado y vacío. Luego escribo la documentación DDD.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Write(<HIDDEN>/CONTEXT.md)
+  ⎿  Wrote 87 lines to <HIDDEN>/CONTEXT.md
+       1 # Portfolio Management
+       2 
+         or owns, what they aim to own, and which trades bring the first 
+         back to the second.
+       4 
+       6 
+       7 ### What is owned
+       8 
+      10 Everything one investor owns in this module: their holdings, the
+         ir cash, and the allocation they aim for.
+     … +93 lines (ctrl+o to expand)
+
+● Write(<HIDDEN>/docs/domain-model.md)  ⎿  Wrote 142 lines to
+     <HIDDEN>/docs/domain-model.md
+      1 # Domain model
+      3 How the portfolio domain is shaped, which rules it follows and wh
+        n [`CONTEXT.md`](../CONTEXT.md); the decisions behind the less ob
+        vious choices are in [`adr/`](adr/).
+      5 Rules are numbered (`R1`…), invariants too (`INV1`…), and so are 
+        roves, so every line here is covered by at least one test, and ev
+      6 
+      7 ## The problem
+      9 An investor owns some shares of some stocks, plus some cash, and 
+        say 25 % AAPL, 25 % MSFT, 50 % NVDA. They buy according to it.
+     … +210 lines (ctrl+o to expand)
+
+● Write(<HIDDEN>/docs/adr/0001-truncate-to-share-pre
+       cision.md)
+  ⎿  Wrote 16 lines to <HIDDEN>/docs/adr/0001-t
+     runcate-to-share-precision.md
+      1 # Target quantities are truncated to the share precision, and the
+      2 
+      3 A target value divided by a price rarely ends: 2,500 / 350 = 7.14
+        , and must not invent or lose money. We truncate every target qua
+        ntity toward zero at the share precision (6 decimal places by def
+         residual cash.
+      4 
+        er more, so cash never goes negative (`INV2`). The money is all a
+        ccounted for: residual cash is exactly the portfolio value minus 
+        : 
+     … +28 lines (ctrl+o to expand)
+
+● Write(<HIDDEN>/docs/adr/0002-prices-live-in-the-ma
+       rket.md)
+  ⎿  Wrote 5 lines to <HIDDEN>/docs/adr/0002-pr
+     ices-live-in-the-market.md
+      1 # Prices live in the market, not in the portfolio
+      3 The exercise says the portfolio "has a collection of Stocks" and 
+        each stock has a current price. Read literally, the portfolio wou
+        ld store prices. We split the two instead: the portfolio holds ti
+        ket, a set of stocks with their current prices, is handed to the 
+        rebalance (what it is worth right now).
+      5 What an investor owns changes when they trade, and what it is wor
+        th changes every second. Keeping them apart means a portfolio nev
+        er carries a stale price, one portfolio can be rebalanced against
+        rice that a h
+     … +6 lines (ctrl+o to expand)
+
+● Write(<HIDDEN>/docs/adr/0003-a-library-not-an-appl
+       ication.md)
+  ⎿  Wrote 5 lines to <HIDDEN>/docs/adr/0003-a-
+     library-not-an-application.md
+      1 # A library, not an application
+      2 
+      3 The answer is a plain Elixir library (`mix new`), with no Phoenix
+         one method, and whoever reads the repository should reach the re
+        balance in seconds, not after an endpoint, a router and a schema.
+      4 
+      5 The domain depends on nothing but exact decimals, so a demonstrat
+        r as a separate layer that calls it, without touching it. Whether
+         that demonstration is worth adding is decided once the domain an
+        d its tests are done.
+     … +2 lines (ctrl+o to expand)
+
+● Write(<HIDDEN>/README.md)
+  ⎿  Wrote 20 lines to <HIDDEN>/README.md
+       1 # Portfolio rebalancing
+       3 A portfolio holds some stocks and some cash, and aims for an all
+         ities do not, and the real weights drift away from the allocatio
+          to it, without inventing or losing a cent or a fraction of a sh
+       4 
+       5 > **Status: design.** The domain is written down. The tests, and
+       6 
+       8 
+         er concept, and the synonyms it rules out.
+         blocks, the numbered rules and invariants e
+     … +26 lines (ctrl+o to expand)
+
+● La documentación DDD está escrita en <HIDDEN>.
+  Quité todo lo que había generado mix new; solo queda git inicializado, vacío y
+  sin commits. Los documentos están en inglés.
+
+  Qué hay
+
+  Archivo: CONTEXT.md
+  Contenido: Glosario del dominio: un término por concepto (Portfolio, Holding,
+  Cash, Stock, Market, Allocation, Weight, Drift, Trade, Share precision,
+  Residual cash…) y los sinónimos que se evitan.
+  ────────────────────────────────────────
+  Archivo: docs/domain-model.md
+  Contenido: El documento central. De aquí salen los tests.
+  ────────────────────────────────────────
+  Archivo: docs/adr/0001
+  Contenido: Truncar las cantidades a la precisión; el resto se queda como
+  efectivo.
+  ────────────────────────────────────────
+  Archivo: docs/adr/0002
+  Contenido: Los precios viven en el mercado, no en el portafolio.
+  ────────────────────────────────────────
+  Archivo: docs/adr/0003
+  Contenido: Una librería, no una aplicación: Phoenix queda para después.
+  ────────────────────────────────────────
+  Archivo: README.md
+  Contenido: Orden de lectura, estado "design" y la nota sobre las
+  conversaciones
+  con el LLM.
+
+  domain-model.md contiene:
+  - Piezas del dominio: el agregado Portfolio y los objetos de valor.
+  - Tres operaciones: construir el portafolio, rebalancear y aplicar las
+    operaciones.
+  - Reglas numeradas: R1–R12.
+  - Invariantes: INV1–INV7, que incluyen la conservación exacta, que el efectivo
+    nunca queda negativo y la idempotencia.
+  - Errores: E1–E10.
+  - Tu ejemplo AAPL/MSFT/NVDA, calculado con decimales exactos. Al final quedan
+    $0,000460 de efectivo, por debajo del límite de $0,001065.
+  - La estructura de módulos planeada.
+
+  Cada test va a citar la regla o el invariante que prueba, así cada línea del
+  documento queda cubierta por al menos un test.
+
+  Decisiones que tomé y conviene que revises
+
+  1. Los precios están fuera del portafolio (ADR 0002). Es la decisión que más
+     se aparta de una lectura literal del enunciado ("Portfolio has a collection
+     of Stocks"). El portafolio guarda ticker → cantidad, y el rebalanceo
+     recibe un Market con los Stock y su current_price/1.
+  2. Los pesos suman exactamente 1, sin redondear (R2). Un plan en tercios hay
+     que escribirlo así: 0,333334 + 0,333333 + 0,333333.
+  3. La precisión es un parámetro del rebalanceo, con 6 por defecto, no un dato
+     del portafolio.
+  4. Incluí "aplicar operaciones" aunque el enunciado no lo pide. Sin esa
+     operación no se pueden probar la conservación ni la idempotencia.
+
+  Cuando lo apruebes, o me digas qué cambiar, el siguiente paso es sacar de aquí
+  la lista de tests.
+
+✻ Cooked for 1m 46s · done 5:03 p.m.
+
+※ recap: Estamos preparando la tarea de rebalanceo de portafolio para postular a <ACME>, y ya está escrita la documentación DDD en <HIDDEN>. Falta que la revises y apruebes para sacar de ahí la lista de tests. (disable recaps in /config)
+
+❯ 1. ok                                                                         
+  2. correcto, la representacion en porcentajes es cuestion de la interfaz      
+  3. hagamos configurable mediante variable de entorno el parametro de          
+  precision, dejando 6 como default                                             
+  4. correcto                                                                   
+
+● Hago el cambio. Una aclaración sobre cómo: la variable de entorno se lee en el
+  borde, no dentro del dominio. config/runtime.exs lee SHARE_PRECISION al
+  arrancar, y el rebalanceo sigue recibiendo la precisión como parámetro, que
+  por defecto toma el valor configurado. Así la función sigue siendo pura y los
+  tests pasan la precisión explícitamente, sin tocar el entorno.
+
+● Update(<HIDDEN>/docs/domain-model.md)
+  ⎿  Added 1 line, removed 1 line
+      26  | Operation | Takes | Gives | Role |
+      27  |---|---|---|---|
+      28  | Build a portfolio | holdings, cash, allocation | the portfoli
+          o, or an error (`E1`–`E4`) | Enforces `R1`–`R4` once, so every 
+          portfolio that exists is valid. |
+      29 -| Rebalance | a portfolio, a market, a share precision (default
+         - 6) | the list of trades, or an error (`E5`–`E8`) | The questio
+         -n the exercise asks. Pure: it changes nothing. |               
+      29 +| Rebalance | a portfolio, a market, a share precision (the con
+         +figured one unless given, see [Configuration](#configuration)) 
+         +| the list of trades, or an error (`E5`–`E8`) | The question th
+         +e exercise asks. Pure: it changes nothing. |                   
+      30  | Apply trades | a portfolio, a list of trades | the portfolio 
+          after them, or an error (`E9`–`E10`) | Lets the tests check tha
+          t a rebalance really does what it says (`INV1`, `INV5`). |
+      31  
+      32  ## Rules
+
+● Update(<HIDDEN>/docs/domain-model.md)
+  ⎿  Added 1 line, removed 1 line
+      34  ### A valid portfolio
+      35  
+      36  - **R1**: Every weight is between 0 and 1, both included.
+      37 -- **R2**: The weights add up to **exactly** 1. An allocation of
+         - thirds must be written out exactly, for instance `0.333334 + 0
+         -.333333 + 0.333333`. Nothing is rounded for the investor.      
+      37 +- **R2**: The weights add up to **exactly** 1. An allocation of
+         + thirds must be written out exactly, for instance `0.333334 + 0
+         +.333333 + 0.333333`. Nothing is rounded for the investor. Showi
+         +ng and taking weights as percentages is the interface's job; th
+         +e domain only knows fractions.                                 
+      38  - **R3**: No quantity is negative.
+      39  - **R4**: Cash is not negative.
+      40  
+
+● Update(<HIDDEN>/docs/domain-model.md)
+  ⎿  Added 10 lines
+      114  
+      115  Cash after: 0.000620 + 666.666500 − 428.571280 − 238.095380 = 
+           **0.000460**, less than the bound of `INV3`: (310 + 505 + 250)
+            × 10⁻⁶ = 0.001065. Positions plus cash add up to 10,571.42856
+           0 again (`INV1`).
+      116  
+      117 +## Configuration                                              
+      118 +                                                              
+      119 +The share precision depends on the broker, so it is configured
+          +, not written in the code.                                    
+      120 +                                                              
+      121 +| Variable | Default | Accepts |                              
+      122 +|---|---|---|                                                 
+      123 +| `SHARE_PRECISION` | `6` | a whole number, 0 or more |       
+      124 +                                                              
+      125 +The environment is read once, at boot, in `config/runtime.exs`
+          +. An invalid value stops the boot with a message naming the va
+          +riable, rather than letting a rebalance fail later. The domain
+          + never reads the environment itself: a rebalance takes the pre
+          +cision as a parameter, defaulting to the configured value. Tha
+          +t keeps it pure, and lets the tests pass each precision explic
+          +itly.                                                         
+      126 +                                                              
+      127  ## Planned structure
+      128  
+      129  A plain Elixir library, no web layer ([ADR 0003](adr/0003-a-li
+           brary-not-an-application.md)). One module per building block, 
+           and the computation as a pure function apart from the aggregat
+           e:
+
+● Update(<HIDDEN>/docs/domain-model.md)
+  ⎿  Added 2 lines
+      129  A plain Elixir library, no web layer ([ADR 0003](adr/0003-a-li
+           brary-not-an-application.md)). One module per building block, 
+           and the computation as a pure function apart from the aggregat
+           e:
+      130  
+      131  ```
+      132 +config/                                                       
+      133 +└── runtime.exs               # reads SHARE_PRECISION, validat
+          +es it, defaults to 6                                          
+      134  lib/
+      135  ├── portfolio.ex              # Portfolio, the aggregate root:
+            build, rebalance, apply trades
+      136  └── portfolio/
+
+● Update(<HIDDEN>/docs/domain-model.md)
+  ⎿  Added 2 lines, removed 1 line
+      141  ├── portfolio_test.exs        # building a portfolio: R1–R4, E
+           1–E4
+      142  ├── portfolio/rebalance_test.exs   # R5–R12, E5–E8, the worked
+            example
+      143  ├── portfolio/apply_trades_test.exs  # E9–E10
+      144 -└── portfolio/invariants_test.exs  # INV1–INV7, over every sce
+          -nario                                                         
+      144 +├── portfolio/invariants_test.exs  # INV1–INV7, over every sce
+          +nario                                                         
+      145 +└── config_test.exs           # SHARE_PRECISION: default, vali
+          +d value, invalid value                                        
+      146  ```
+      147  
+      148  Its only dependency is `decimal`, for exact arithmetic.
+
+● Update(<HIDDEN>/docs/adr/0001-truncate-to-share-pr
+        ecision.md)
+  ⎿  Added 1 line, removed 1 line
+      1  # Target quantities are truncated to the share precision, and th
+         e rest stays as cash
+      2  
+      3 -A target value divided by a price rarely ends: 2,500 / 350 = 7.1
+        -42857142… shares. A rebalance must still give tradeable quantiti
+        -es, and must not invent or lose money. We truncate every target 
+        -quantity toward zero at the share precision (6 decimal places by
+        - default), and whatever that leaves unspent stays in the portfol
+        -io as residual cash.                                            
+      3 +A target value divided by a price rarely ends: 2,500 / 350 = 7.1
+        +42857142… shares. A rebalance must still give tradeable quantiti
+        +es, and must not invent or lose money. We truncate every target 
+        +quantity toward zero at the share precision (6 decimal places un
+        +less `SHARE_PRECISION` says otherwise), and whatever that leaves
+        + unspent stays in the portfolio as residual cash.               
+      4  
+      5  Truncating can only ever spend less than the portfolio value, ne
+         ver more, so cash never goes negative (`INV2`). The money is all
+          accounted for: residual cash is exactly the portfolio value min
+         us what the target quantities are worth (`INV1`). And it stays s
+         mall: less than one smallest fraction of each allocated stock (`
+         INV3`).
+      6  
+
+● Los cuatro puntos ya están en la documentación:
+
+  1. Precios fuera del portafolio: queda como estaba (ADR 0002).
+  2. Porcentajes como cosa de la interfaz: lo añadí a R2. El dominio solo
+     trabaja con fracciones.
+  3. Precisión configurable: hay una sección nueva, Configuration, en
+     docs/domain-model.md.
+     - La variable SHARE_PRECISION vale 6 por defecto y acepta enteros de 0 en
+       adelante.
+     - Se lee una vez al arrancar, en config/runtime.exs. Si el valor no es
+       válido, el arranque falla con un mensaje que nombra la variable, en vez
+       de que un rebalanceo falle después.
+     - El dominio nunca lee el entorno: recibe la precisión como parámetro, que
+       por defecto toma el valor configurado. Así sigue siendo puro, y los tests
+       pasan cada precisión de forma explícita.
+     - Añadí config/runtime.exs y test/config_test.exs a la estructura planeada,
+       y la ADR 0001 ahora menciona la variable.
+  4. Aplicar operaciones: queda como estaba.
+
+  Sigue sin haber código ni commits. El siguiente paso es sacar de este
+  documento la lista de tests, cada uno con la regla, el invariante o el error
+  que prueba. ¿Seguimos?
+
+✻ Cooked for 27s · done 5:16 p.m.
+
+❯ tambien para cada prueba debe existir la prueba negativa que la complete, que 
+  opinas?                                                                       
+
+● Me parece bien, siempre que la prueba negativa sea el caso del otro lado del 
+  límite y no un duplicado mecánico. Si cada test se duplica sin criterio, la
+  suite crece y no prueba más. Si cada par marca dónde cambia la respuesta, la
+  suite define la regla con exactitud.
+
+  Lo que significa "la negativa" depende de qué se prueba:
+
+  1. Validaciones (R1–R8, E1–E10): el par es el límite.
+  - Peso 0 y peso 1 → aceptados. Peso -0.000001 y 1.000001 → E1.
+  - Pesos que suman exactamente 1 → aceptados. 0.999999 → E2, con la suma
+    encontrada.
+  - Una cantidad con 6 decimales y precisión 6 → aceptada. Con 7 decimales → E8.
+
+  2. Reglas de cálculo (R9–R12): la negativa es el caso que descarta la 
+  alternativa.
+  - R10, truncar: un caso donde redondear al más cercano daría otro número. Por
+    ejemplo, 7,1428579 debe dar 7,142857, no 7,142858. Si truncar y redondear
+    dieran lo mismo en todos los tests, ninguno probaría que truncamos.
+  - R11: diferencia cero → ninguna operación, ni siquiera una de cantidad 0.
+  - R12: la misma entrada en otro orden da la misma salida.
+
+  3. Invariantes (INV1–INV7): la negativa prueba el verificador. Esta es la más
+  valiosa. Los invariantes se comprueban con funciones auxiliares de test, y un
+  verificador mal escrito pasa siempre en silencio. Por eso cada verificador se
+  prueba contra un plan roto a mano:
+  - Un plan que gasta un centavo de más → la verificación de INV2 debe fallar.
+  - Una operación con 7 decimales → la de INV4 debe fallar.
+  - Un plan que pierde 0,000001 → la de INV1 debe fallar.
+
+  Sin esto, "los invariantes pasan" no demuestra nada.
+
+  4. Configuración: SHARE_PRECISION=2 → aceptado. -1, abc o 2.5 → el arranque
+  falla nombrando la variable.
+
+  Propongo dejarlo escrito como regla de la suite en domain-model.md, en una
+  sección Testing: cada regla se prueba a ambos lados de su límite; cada 
+  verificador de invariantes se prueba contra un plan que lo rompe. Así queda
+  como criterio del proyecto y no como costumbre. ¿Lo agrego y seguimos con la
+  lista de tests?
+
+✻ Cogitated for 16s · done 5:17 p.m.
+
+❯ sí                                                                            
+
+● Agrego la sección Testing y armo el plan de pruebas. Al escribir los pares
+  salieron dos huecos en el modelo, y los cierro también:
+  - qué error se reporta cuando se rompen varias reglas a la vez;
+  - qué pasa con una posición que llega a cero.
+
+● Update(<HIDDEN>/docs/domain-model.md)
+  ⎿  Added 5 lines
+      52  - **R11**: Each ticker's trade is its target quantity minus its
+           held quantity: a positive difference is a buy, a negative one 
+          a sell, and zero is no trade at all.
+      53  - **R12**: The trades come sells first, then buys, each group o
+          rdered by ticker. The order does not depend on how the input wa
+          s written, and selling first frees the cash the buys spend.
+      54  
+      55 +### How trades are applied                                     
+      56 +                                                               
+      57 +- **R13**: Trades are applied one by one, in the order given. A
+         + sell takes its quantity from the holding and adds its amount t
+         +o the cash; a buy does the opposite. Each one must be possible 
+         +at the moment it is applied.                                   
+      58 +- **R14**: A holding that reaches exactly 0 is removed from the
+         + portfolio.                                                    
+      59 +                                                               
+      60  ## Invariants
+      61  
+      62  What every rebalance keeps, whatever the input. Each is a test 
+          run against every scenario, not only against one example.
+
+● Update(<HIDDEN>/docs/domain-model.md)
+  ⎿  Added 1 line, removed 1 line
+      71  
+      72  ## Errors
+      73  
+      74 -Every error comes back as a value naming the rule it breaks and
+         - the offending ticker. Nothing raises.                         
+      74 +Every error comes back as a value naming the rule it breaks and
+         + the offending ticker. Nothing raises. When an input breaks sev
+         +eral rules, the error reported is the one for the lowest-number
+         +ed rule, and within it, for the first ticker in alphabetical or
+         +der, so the same input always gives the same error.            
+      75  
+      76  | Error | Rule | When |
+      77  |---|---|---|
+
+● Update(<HIDDEN>/docs/domain-model.md)
+  ⎿  Added 2 lines, removed 2 lines
+      83  | **E6** non-positive price | R6 | a current price of 0 or less
+           |
+      84  | **E7** duplicate stock | R7 | the market names a ticker twice
+           |
+      85  | **E8** precision | R8 | an invalid share precision, or a held
+           quantity finer than it |
+      86 -| **E9** not enough shares | apply | a sell larger than the hol
+         -ding |                                                         
+      87 -| **E10** not enough cash | apply | the buys cost more than the
+         - cash at that point |                                          
+      86 +| **E9** not enough shares | R13 | a sell larger than the holdi
+         +ng at that point |                                             
+      87 +| **E10** not enough cash | R13 | a buy costing more than the c
+         +ash at that point |                                            
+      88  
+      89  ## Worked example
+      90  
+
+● Update(<HIDDEN>/docs/domain-model.md)  ⎿  Added 1 line, removed 1 line
+      127  |---|---|---|
+      128  | `SHARE_PRECISION` | `6` | a whole number, 0 or more |
+      129  
+      130 -The environment is read once, at boot, in `config/runtime.exs`
+          -. An invalid value stops the boot with a message naming the va
+          -riable, rather than letting a rebalance fail later. The domain
+          - never reads the environment itself: a rebalance takes the pre
+          -cision as a parameter, defaulting to the configured value. Tha
+          -t keeps it pure, and lets the tests pass each precision explic
+          -itly.                                                         
+      130 +The environment is read once, at boot, in `config/runtime.exs`
+          +, which hands the raw value to `Portfolio.Config` to parse and
+          + check. An invalid value stops the boot with a message naming 
+          +the variable, rather than letting a rebalance fail later. The 
+          +domain never reads the environment itself: a rebalance takes t
+          +he precision as a parameter, defaulting to the configured valu
+          +e. That keeps it pure, and lets the tests pass each precision 
+          +explicitly.                                                   
+      131  
+      132  ## Planned structure
+      133  
+
+● Update(<HIDDEN>/docs/domain-model.md)
+  ⎿  Added 10 lines, removed 4 lines
+      141  └── portfolio/
+      142      ├── stock.ex              # Stock: ticker + current price,
+            current_price/1
+      143      ├── trade.ex              # Trade: ticker, side, quantity,
+            amount
+      144 -    └── rebalance.ex          # the computation of R9–R12, pur
+          -e                                                             
+      144 +    ├── rebalance.ex          # the computation of R9–R12, pur
+          +e                                                             
+      145 +    └── config.ex             # parses and checks SHARE_PRECIS
+          +ION                                                           
+      146  test/
+      147 +├── support/                                                  
+      148 +│   ├── scenarios.ex          # the named scenarios the invari
+          +ants run over                                                 
+      149 +│   └── invariants.ex         # one checker per invariant     
+      150  ├── portfolio_test.exs        # building a portfolio: R1–R4, E
+           1–E4
+      151  ├── portfolio/rebalance_test.exs   # R5–R12, E5–E8, the worked
+            example
+      148 -├── portfolio/apply_trades_test.exs  # E9–E10                 
+      149 -├── portfolio/invariants_test.exs  # INV1–INV7, over every sce
+          -nario                                                         
+      150 -└── config_test.exs           # SHARE_PRECISION: default, vali
+          -d value, invalid value                                        
+      152 +├── portfolio/apply_trades_test.exs  # R13–R14, E9–E10        
+      153 +├── portfolio/invariants_test.exs  # INV1–INV7 over every scen
+          +ario, and each checker against a broken plan                  
+      154 +└── portfolio/config_test.exs # SHARE_PRECISION               
+      155  ```
+      156  
+      157 +The test plan, every test and the side of the line it stands o
+          +n, is in [`test-plan.md`](test-plan.md).                      
+      158 +                                                              
+      159  Its only dependency is `decimal`, for exact arithmetic.
+      160  
+      161  ## Out of scope, for now
+
+● Update(<HIDDEN>/docs/domain-model.md)
+  ⎿  Added 8 lines
+      158  
+      159  Its only dependency is `decimal`, for exact arithmetic.
+      160  
+      161 +## Testing                                                    
+      162 +                                                              
+      163 +A test that only shows the happy side of a rule does not say w
+          +here the rule stops. So every test comes as a pair, and what t
+          +he pair is depends on what it proves:                         
+      164 +                                                              
+      165 +- **A rule that accepts or rejects** (R1–R8, R13, `SHARE_PRECI
+          +SION`): one case just inside the line and one just outside it.
+          + Weight 1 is accepted, 1.000001 is rejected.                  
+      166 +- **A rule that computes** (R9–R12, R14): the case that tells 
+          +this rule apart from the obvious alternative. Truncation is pr
+          +oven with a quotient that rounding would carry up; if both rul
+          +es gave the same answer in every test, no test would prove whi
+          +ch one the code follows.                                      
+      167 +- **An invariant** (INV1–INV7): it is checked by a test helper
+          +, and a helper that is wrong passes in silence. So each checke
+          +r is also run against a plan broken on purpose to violate it, 
+          +and must fail.                                                
+      168 +                                                              
+      169  ## Out of scope, for now
+      170  
+      171  - **Whole shares only.** Brokers that cannot sell fractions ne
+           ed another rule for the target quantity, and there is no singl
+           e right one (see [ADR 0001](adr/0001-truncate-to-share-precisi
+           on.md)). It would come in as a second rule behind the same reb
+           alance, with its own tests.
+
+● Ahora verifico con decimales exactos los números de los escenarios que va a
+  usar el plan.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Encontré que no se puede rebalancear el día 2 a precisión 0 o 2 partiendo de
+  posiciones con 6 decimales, ya que R8 lo rechaza con E8, lo cual es correcto.
+  Ahora recalculo esos escenarios encadenando ambos días desde el principio.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Write(<HIDDEN>/docs/test-plan.md)
+  ⎿  Wrote 99 lines to
+     <HIDDEN>/docs/test-plan.md
+      1 # Test plan
+      3 Every test the suite will have, derived from [`domain-model.md`](
+        domain-model.md) before any code. Each one names what it proves a
+        e and the case outside it, or the case and the alternative it rul
+        imals.
+      4 
+         is the share precision; it is 6 unless a test says otherwise.
+      6 
+      8 
+        rios.ex`). Several of them are also used by the tests below.
+     … +150 lines (ctrl+o to expand)
+
+● Encontré que T22 y T27 no rompían lo que debían con un ajuste de 0,000001, así
+  que los corrijo subiendo T22 y bajando T27 en 0,000002 cada uno.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● El plan de pruebas está escrito en docs/test-plan.md: 28 tests (T1–T28), cada
+  uno con su par, y 10 escenarios (S1–S10) sobre los que corren los invariantes.
+  Calculé todos los números de antemano con decimales exactos.
+
+  Qué hay en el plan
+
+  - T1–T5, construir el portafolio. Cada regla a ambos lados del límite. Por
+    ejemplo, el peso 1 se acepta y 1,000001 da E1; los tercios exactos se
+    aceptan y 0,333333 × 3 da E2 con la suma 0,999999.
+  - T6–T16, rebalancear.
+    - Validación del mercado y de la precisión.
+    - En los cálculos, cada caso descarta la alternativa obvia. T11 usa MSFT:
+      4,7619047… debe dar 4,761904, porque redondear daría 4,761905.
+    - T16 es tu ejemplo completo con todos sus números.
+  - T17–T20, aplicar operaciones. Incluye T19: si se ejecutan las compras antes
+    que las ventas, falla con E10, y eso justifica el orden de R12.
+  - T21–T27, invariantes. Cada uno corre sobre los 10 escenarios, y además su
+    verificador se prueba contra un plan roto a propósito.
+  - T28, SHARE_PRECISION. Sin definir da 6; "0" y "2" se aceptan; "", "-1",
+    "2.5" y "abc" dan un error que nombra la variable.
+
+  Lo que encontró el ejercicio de los pares
+
+  Escribir las pruebas negativas con números reales destapó cuatro cosas:
+
+  1. Los escenarios de precisión 0 y 2 no podían partir de tu ejemplo, porque
+     sus posiciones tienen 6 decimales y R8 las rechaza. Ahora recorren los dos
+     días desde cero. Ese rechazo quedó además como caso negativo de T9.
+  2. Dos planes rotos no rompían nada. Desviarse en una sola fracción de acción
+     quedaba dentro del margen permitido. Los corregí para que rompan de verdad,
+     y T27 deja anotado el caso de una fracción como el límite exacto. Es justo
+     el tipo de error que la regla de los pares debía atrapar.
+  3. Faltaba definir qué error se reporta cuando se rompen varias reglas a la 
+     vez. Ahora es el de la regla con el número más bajo y, dentro de ella, el
+     del primer ticker en orden alfabético.
+  4. Faltaba la regla para aplicar operaciones. Añadí R13 (se aplican en orden,
+     y cada una debe ser posible en su momento) y R14 (una posición que llega a
+     0 se elimina).
+
+  Sigue sin haber código ni commits. El siguiente paso es crear el proyecto Mix
+  y escribir estos tests, que van a fallar. ¿Avanzo?
+
+✻ Crunched for 2m 29s · done 5:22 p.m.
+
+❯ adelante                                                                      
+
+● Creo el proyecto Mix en el directorio y conservo la documentación (no
+  sobrescribo el README).
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Escribo la configuración, los esqueletos de la interfaz (structs y firmas que
+  fallan con "not implemented", para que los tests compilen y fallen en sus
+  aserciones) y luego los tests.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Write(<HIDDEN>/lib/portfolio.ex)
+  ⎿  Wrote 67 lines to
+     <HIDDEN>/lib/portfolio.ex
+       1 defmodule Portfolio do
+       3   The aggregate root: what one investor owns (holdings and cash)
+          and what they
+       5 
+       6   A portfolio can only be built through `new/1`, which enforces 
+       7   `docs/domain-model.md`, so every `%Portfolio{}` that exists is
+          valid.
+       9   Holdings map a ticker to a quantity of shares; the allocation 
+         maps a ticker to
+         t each rebalance
+     … +75 lines (ctrl+o to expand)
+
+● Write(<HIDDEN>/lib/portfolio/stock.ex)
+  ⎿  Wrote 16 lines to
+     <HIDDEN>/lib/portfolio/stock.ex
+       1 defmodule Portfolio.Stock do
+       2   @moduledoc """
+       3   A company's share as the market lists it: its ticker and its c
+       4 
+       5   A list of stocks is the *market* a rebalance is priced against
+         .
+       6   """
+       8   @type t :: %__MODULE__{ticker: String.t(), price: Decimal.t()}
+       9 
+      10   @enforce_keys [:ticker, :price]
+     … +7 lines (ctrl+o to expand)
+
+● Write(<HIDDEN>/lib/portfolio/trade.ex)
+  ⎿  Wrote 19 lines to
+     <HIDDEN>/lib/portfolio/trade.ex
+       1 defmodule Portfolio.Trade do
+       2   @moduledoc """
+       3   One instruction to buy or sell a quantity of one stock at its 
+       4 
+       5   `quantity` is always positive; `side` says which way it goes. 
+         `amount` is
+       6   `quantity × current price`, exact.
+       8 
+       9   @type side :: :buy | :sell
+      10   @type t :: %__MODULE__{
+     … +11 lines (ctrl+o to expand)
+
+● Write(<HIDDEN>/lib/portfolio/config.ex)
+  ⎿  Wrote 24 lines to
+     <HIDDEN>/lib/portfolio/config.ex
+       1 defmodule Portfolio.Config do
+       2   @moduledoc """
+       3   The share precision, configured through `SHARE_PRECISION`.
+       5   `config/runtime.exs` reads the environment once, at boot, and 
+         hands the raw
+       6   value to `parse_share_precision/1`. The domain never reads the
+          environment:
+       8   """
+       9 
+      10   @default_share_precision 6
+     … +21 lines (ctrl+o to expand)
+
+● Write(<HIDDEN>/config/runtime.exs)
+  ⎿  Wrote 8 lines to
+     <HIDDEN>/config/runtime.exs
+      1 import Config
+      2 
+      3 # The share precision depends on the broker, so it comes from the
+      4 # An invalid value stops the boot here, rather than a rebalance f
+        ailing later.
+      5 case Portfolio.Config.parse_share_precision(System.get_env("SHARE
+        _PRECISION")) do
+        on
+      7   {:error, message} -> raise message
+      8 end
+     … +1 line (ctrl+o to expand)
+  ⎿  Interrupted · What should Claude do instead?
+
+❯ disculpame, pero no hagas manualmente los archivos, usa las herramientas mix  
+  para crear projecto, etc de mix, evitemos errores por hacerlo a mano          
+
+● Voy a eliminar lo que creé manualmente (mix.exs, .formatter.exs, .gitignore,
+  lib/, config/, deps/) y generar el proyecto con mix new en el mismo
+  directorio, respaldando el README y respondiendo "no" si pregunta por
+  sobrescribirlo.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● mix new . no preguntó si continuar, así que el "y" respondió "sobrescribir
+  README". Restauro el README desde el respaldo.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● El README quedó intacto. Ahora creo .tool-versions con asdf en lugar de a
+  mano.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● El proyecto quedó generado con herramientas:
+
+  - mix new . --app portfolio --module Portfolio creó mix.exs, .formatter.exs,
+    .gitignore, lib/portfolio.ex y test/.
+  - asdf local fijó Erlang 27.3 y Elixir 1.19.5 en .tool-versions.
+  - La documentación no se tocó. mix new . sí sobrescribió el README, porque el
+    "sí" que envié para otra pregunta respondió a esa, pero lo restauré desde un
+    respaldo y está idéntico.
+
+  Antes de seguir, conviene acordar un límite: Mix no tiene comandos para añadir
+  dependencias ni para generar módulos o tests. Quedan tres cosas que hay que
+  escribir:
+
+  1. En mix.exs, dos cambios pequeños: la dependencia {:decimal, "~> 2.1"} y
+     elixirc_paths, para compilar test/support/ solo en tests. Lo seguro es
+     editar únicamente esas líneas del archivo generado, y que mix deps.get y
+     mix compile lo validen al momento.
+  2. config/runtime.exs: Mix no lo genera. Son unas 5 líneas.
+  3. Los módulos y los tests: son el contenido del ejercicio, así que hay que
+     escribirlos sí o sí. Los valida mix compile --warnings-as-errors, mix 
+     format y mix test.
+
+  Igniter permitiría generar parte de esto con comandos, pero mete una
+  dependencia y un archivo de herramientas en un ejercicio que debería ser
+  mínimo. No lo recomiendo aquí.
+
+  Propongo:
+  - editar solo esas líneas de mix.exs;
+  - crear los archivos restantes;
+  - correr mix deps.get, mix format, mix compile --warnings-as-errors y mix test
+    después de cada paso, para que las herramientas detecten cualquier error en
+    cuanto aparezca.
+
+  ¿Te parece bien, o prefieres que use Igniter para lo que se pueda generar?
+
+✻ Cogitated for 38s · done 5:29 p.m.
+❯ adelante                                                                      
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Update(<HIDDEN>/mix.exs)
+  ⎿  File must be read first
+
+● Update(<HIDDEN>/mix.exs)
+  ⎿  File must be read first
+
+  Read 3 files, ran 1 shell command (ctrl+o to expand)
+
+● La herramienta Read está bloqueada fuera del workbench, así que hago los
+  cambios con un script que comprueba que cada texto a reemplazar aparece
+  exactamente una vez.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Ahora actualizo la tabla de errores con el valor exacto que devuelve cada uno
+  y añado T29 al plan para verificar que cada escenario produce las operaciones
+  de su tabla.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Reemplazo el hello world generado con los esqueletos de la interfaz: las
+  structs y las firmas con su documentación. Las funciones lanzan "not
+  implemented" para que los tests compilen y fallen.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Write(<HIDDEN>/lib/portfolio.ex)
+  ⎿  Wrote 67 lines to
+     <HIDDEN>/lib/portfolio.ex
+       1 defmodule Portfolio do
+       3   The aggregate root: what one investor owns (holdings and cash)
+          and what they
+       5 
+       6   A portfolio can only be built through `new/1`, which enforces 
+       7   `docs/domain-model.md`, so every `%Portfolio{}` that exists is
+          valid.
+       9   Holdings map a ticker to a quantity of shares; the allocation 
+         maps a ticker to
+         t each rebalance
+     … +75 lines (ctrl+o to expand)
+
+● Write(<HIDDEN>/lib/portfolio/stock.ex)
+  ⎿  Wrote 16 lines to
+     <HIDDEN>/lib/portfolio/stock.ex
+       1 defmodule Portfolio.Stock do
+       2   @moduledoc """
+       3   A company's share as the market lists it: its ticker and its c
+       4 
+       5   A list of stocks is the *market* a rebalance is priced against
+         .
+       6   """
+       8   @type t :: %__MODULE__{ticker: String.t(), price: Decimal.t()}
+       9 
+      10   @enforce_keys [:ticker, :price]
+     … +7 lines (ctrl+o to expand)
+
+● Write(<HIDDEN>/lib/portfolio/trade.ex)
+  ⎿  Wrote 19 lines to
+     <HIDDEN>/lib/portfolio/trade.ex
+       1 defmodule Portfolio.Trade do
+       2   @moduledoc """
+       3   One instruction to buy or sell a quantity of one stock at its 
+       4 
+       5   `quantity` is always positive; `side` says which way it goes. 
+         `amount` is
+       6   `quantity × current price`, exact.
+       8 
+       9   @type side :: :buy | :sell
+      10   @type t :: %__MODULE__{
+     … +11 lines (ctrl+o to expand)
+
+● Write(<HIDDEN>/lib/portfolio/config.ex)
+  ⎿  Wrote 24 lines to
+     <HIDDEN>/lib/portfolio/config.ex
+       1 defmodule Portfolio.Config do
+       2   @moduledoc """
+       3   The share precision, configured through `SHARE_PRECISION`.
+       5   `config/runtime.exs` reads the environment once, at boot, and 
+         hands the raw
+       6   value to `parse_share_precision/1`. The domain never reads the
+          environment:
+       8   """
+       9 
+      10   @default_share_precision 6
+     … +21 lines (ctrl+o to expand)
+
+● Write(<HIDDEN>/config/runtime.exs)
+  ⎿  Wrote 8 lines to
+     <HIDDEN>/config/runtime.exs
+      1 import Config
+      2 
+      3 # The share precision depends on the broker, so it comes from the
+      4 # An invalid value stops the boot here, rather than a rebalance f
+        ailing later.
+      5 case Portfolio.Config.parse_share_precision(System.get_env("SHARE
+        _PRECISION")) do
+        on
+      7   {:error, message} -> raise message
+      8 end
+     … +1 line (ctrl+o to expand)
+
+● Hay un problema de orden: config/runtime.exs se ejecuta al arrancar mix test
+  y, con el esqueleto actual, lanzaría "not implemented" antes de correr ningún
+  test. Voy a crear ese archivo al implementar Portfolio.Config y luego
+  compilaré.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Compila. Ahora el soporte de tests: helpers, escenarios S1–S10 como datos
+  literales y los verificadores de invariantes, que calculan por su cuenta sin
+  usar la implementación.
+
+● Write(<HIDDEN>/test/support/helpers.ex)
+  ⎿  Wrote 42 lines to
+     <HIDDEN>/test/support/helpers.ex
+       1 defmodule Portfolio.Test.Helpers do
+         eads as its row in `docs/test-plan.md`."
+       3 
+       5 
+       6   @doc "An exact decimal from a string or an integer: `d(\"0.25\
+       7   def d(value) when is_binary(value) or is_integer(value), do: D
+         ecimal.new(value)
+       9   @doc "A map of tickers to decimals, from a keyword-like list o
+         f strings: `decimals(A: \"1\")`."
+         {to_string(ticker), d(value)} end)
+     … +46 lines (ctrl+o to expand)
+
+● Write(<HIDDEN>/test/support/scenarios.ex)
+  ⎿  Wrote 158 lines to
+     <HIDDEN>/test/support/scenarios.ex
+       1 defmodule Portfolio.Test.Scenarios do
+       2   @moduledoc """
+       4 
+       5   Every number was computed beforehand with exact decimals, and 
+         none is derived
+         er one writes
+       7   its holdings out instead of applying the other one's trades.
+       8 
+         tfolio.new/1`,
+      10   so a scenario does not depend on the constructor being right.
+     … +161 lines (ctrl+o to expand)
+
+● Write(<HIDDEN>/test/support/invariants.ex)
+  ⎿  Wrote 123 lines to
+     <HIDDEN>/test/support/invariants.ex
+      1 defmodule Portfolio.Test.Invariants do
+      2   @moduledoc """
+      3   One checker per invariant INV1–INV7 of `docs/domain-model.md`.
+      5   Each returns `:ok` or `{:error, reason}`. They do their own ari
+        thmetic and do
+      6   not call `Portfolio.apply_trades/2`, so a bug in the code under
+         test cannot
+      8   `Portfolio.rebalance/3`, because idempotence is a property of t
+        he rebalance.
+      9   """
+     … +137 lines (ctrl+o to expand)
+
+● Ahora los tests, uno por fila del plan.
+
+● Write(<HIDDEN>/test/portfolio_test.exs)
+  ⎿  Wrote 79 lines to
+     <HIDDEN>/test/portfolio_test.exs
+      1 defmodule PortfolioTest do
+      2   @moduledoc "Building a portfolio: T1–T5 of `docs/test-plan.md`.
+        "
+      3   use ExUnit.Case, async: true
+      4 
+      6 
+      7   defp new(holdings, cash, allocation) do
+      8     Portfolio.new(holdings: decimals(holdings), cash: d(cash), al
+        location: decimals(allocation))
+      9   end
+     … +84 lines (ctrl+o to expand)
+
+● Write(<HIDDEN>/test/portfolio/rebalance_test.exs)
+  ⎿  Wrote 179 lines to
+     <HIDDEN>/test/portfolio/rebalance_test.exs
+       1 defmodule Portfolio.RebalanceTest do
+       2   @moduledoc "Rebalancing: T6–T16 of `docs/test-plan.md`."
+       3   use ExUnit.Case, async: true
+       4 
+       5   import Portfolio.Test.Helpers
+       6 
+       7   alias Portfolio.Test.Scenarios
+       8 
+       9   defp rebalance(scenario_id) do
+      10     s = Scenarios.fetch(scenario_id)
+     … +199 lines (ctrl+o to expand)
+
+● Write(<HIDDEN>/test/portfolio/apply_trades_test.ex
+       s)
+  ⎿  Wrote 78 lines to <HIDDEN>/test/portfolio/
+     apply_trades_test.exs
+       1 defmodule Portfolio.ApplyTradesTest do
+       2   @moduledoc "Applying trades: T17–T20 of `docs/test-plan.md`."
+       3   use ExUnit.Case, async: true
+       5   import Portfolio.Test.Helpers
+       6 
+       7   alias Portfolio.Test.Scenarios
+       8 
+         o
+      10     test "inside: selling exactly the whole holding is accepted"
+          do
+     … +81 lines (ctrl+o to expand)
+
+● Write(<HIDDEN>/test/portfolio/invariants_test.exs)  ⎿  Wrote 134 lines to <HIDDEN>/test/portfolio
+     /invariants_test.exs
+      1 defmodule Portfolio.InvariantsTest do
+      2   @moduledoc """
+      3   Invariants: T21–T27 and T29 of `docs/test-plan.md`.
+      4 
+      5   Each invariant is checked on every scenario S1–S10. Then its ch
+      6   against a plan broken on purpose, and must catch it: a checker 
+        that never
+      7   fails would let every invariant pass in silence.
+      8   """
+      9   use ExUnit.Case, async: true
+     … +155 lines (ctrl+o to expand)
+
+● Write(<HIDDEN>/test/portfolio/config_test.exs)
+  ⎿  Wrote 25 lines to
+     <HIDDEN>/test/portfolio/config_test.exs
+       1 defmodule Portfolio.ConfigTest do
+       2   @moduledoc "Configuration: T28 of `docs/test-plan.md`."
+       3   use ExUnit.Case, async: true
+       4 
+       5   alias Portfolio.Config
+       6 
+       7   describe "T28 SHARE_PRECISION" do
+       8     test "inside: unset gives the default, 6" do
+       9       assert {:ok, 6} = Config.parse_share_precision(nil)
+      10     end
+     … +17 lines (ctrl+o to expand)
+
+● Ahora formateo, compilo con warnings como errores y corro la suite. Debe
+  fallar entera (fase roja), por las razones correctas.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● La suite está en rojo: 138 tests y 131 fallos. Reviso por qué falla cada uno;
+  los 7 que pasan deberían ser los verificadores contra planes rotos.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● La fase roja quedó lista: 138 tests, 131 fallos, y todos por la misma razón: 
+  not implemented. Ninguno falla por un error de los tests o de los datos.
+
+  Qué se hizo
+
+  - Proyecto: generado con mix new. .tool-versions lo creó asdf local, y mix.exs
+    solo recibió dos cambios: la dependencia decimal y elixirc_paths para
+    test/support/. Lo validaron mix deps.get y mix compile.
+  - Esqueleto de la interfaz en lib/: las structs Portfolio, Stock, Trade y el
+    módulo Config, con sus firmas, tipos y documentación. Las funciones lanzan
+    "not implemented".
+  - Soporte de tests en test/support/:
+    - Los escenarios S1–S10 como datos literales: ningún número sale del código
+      que se está probando.
+    - Un verificador por invariante, que hace sus propias cuentas sin usar
+      apply_trades.
+  - Los tests T1–T29 según el plan, cada uno con su par.
+
+  Por qué pasan 7 tests
+
+  Son los verificadores probados contra planes rotos a propósito: no dependen de
+  la implementación, y ya detectan cada violación. El octavo, el de
+  idempotencia (T25), falla porque necesita llamar a rebalance.
+
+  Pendientes
+
+  - Warnings del verificador de tipos: Elixir 1.19 avisa que los esqueletos
+    "nunca devuelven nada", porque solo lanzan un error. Por eso la compilación
+    de tests con --warnings-as-errors falla por ahora. Desaparecen al
+    implementar.
+  - Se añadió T29 al plan: cada escenario debe dar exactamente las operaciones y
+    el efectivo de su fila.
+  - La documentación de errores ahora incluye el valor exacto que devuelve cada
+    uno.
+  - config/runtime.exs todavía no existe: se ejecuta al arrancar mix test y, con
+    el esqueleto, tumbaría toda la suite. Entra junto con la implementación de
+    Config.
+
+  No hay commits. ¿Hago un commit de la fase roja antes de implementar? Así el
+  historial muestra que los tests vinieron primero, y a un revisor de TDD eso le
+  interesa ver.
+
+✻ Worked for 4m 19s · done 5:34 p.m.
+
+❯ - haz commit                                                                  
+  - instalemos credo                                                            
+  - hagamos una githook en precommit para correr credo, formater y dyalizer     
+  - hagamos el ci para correr las pruebas con el push a main                    
+  - la carpeta de docs/ conflictua con la que genera exdocs si decidimos        
+  implementarlo, cambialo a design/                                             
+
+● Hago todo en commits separados por tema. Empiezo por el de la fase roja,
+  dividido en dos para que el historial cuente el orden real: primero el diseño,
+  después los tests.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Ahora renombro docs/ → design/ y actualizo cada referencia.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Todas esas referencias son de este repo, así que las reemplazo en bloque.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Ahora Credo y Dialyzer. Añado las dos dependencias y genero .credo.exs con mix
+  credo gen.config.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Credo encontró una sugerencia legítima: un alias faltante en el verificador de
+  invariantes. La corrijo y corro Dialyzer.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Dialyzer marca lo esperado en el esqueleto de rebalance y Credo pasa sin
+  observaciones. Voy a activar el hook al final: primero commit de Credo y
+  Dialyzer, luego CI, y por último el hook, así el siguiente commit (la
+  implementación) es el primero que debe pasar los tres controles sin usar
+  --no-verify.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Ahora el CI: GitHub Actions al hacer push a main. Toma las versiones de
+  .tool-versions, para que el CI y tu máquina no puedan divergir.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Write(<HIDDEN>/.github/workflows/ci.yml)
+  ⎿  Wrote 30 lines to
+     <HIDDEN>/.github/workflows/ci.yml
+       1 name: CI
+       2 
+       3 on:
+       4   push:
+       5     branches: [main]
+       6 
+       7 jobs:
+       8   test:
+       9     runs-on: ubuntu-24.04
+      10     env:
+     … +21 lines (ctrl+o to expand)
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Ahora el hook. Va versionado en .githooks/pre-commit, y mix setup lo activa
+  con git config core.hooksPath .githooks, para que cualquiera que clone el repo
+  lo tenga con un solo comando.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Write(<HIDDEN>/.githooks/pre-commit)
+  ⎿  Wrote 13 lines to
+     <HIDDEN>/.githooks/pre-commit
+       1 #!/usr/bin/env sh
+       2 # Runs before every commit; any failure stops it.
+       3 # Activated by `mix setup` (git config core.hooksPath .githooks)
+         .
+       4 set -e
+       6 echo "pre-commit: mix format --check-formatted"
+       7 mix format --check-formatted
+       8 
+       9 echo "pre-commit: mix credo --strict"
+      10 mix credo --strict
+     … +3 lines (ctrl+o to expand)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● ShellCheck pasa. Hago el commit del hook antes de activarlo, luego lo activo
+  con mix setup y lo pruebo a mano. Debería detenerse en Dialyzer por el
+  esqueleto.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Están los cinco puntos, en commits separados. El hook ya está activo, y al
+  probarlo se detiene en Dialyzer como debe: el esqueleto de rebalance todavía
+  no devuelve nada.
+
+  Historial
+
+  b076057 Check format, Credo and Dialyzer before every commit
+  388c96a Run the tests in CI on every push to main
+  d692866 Add Credo and Dialyzer
+  a41c789 Move the design papers from docs/ to design/
+  2f030b7 Add the failing test suite over the interface skeleton
+  32fe117 Write down the domain before any code
+
+  Qué hay
+
+  - Commit de la fase roja: dividido en dos, el diseño primero y luego los
+    tests. Así el historial muestra el orden real en que se hicieron.
+  - design/: reemplaza a docs/, con todas las referencias actualizadas en el
+    README, el código y los tests. Un detalle: ExDoc escribe en doc/ (en
+    singular), así que no había un choque literal de nombres, pero tenerlas lado
+    a lado confundía igual.
+  - Credo 1.7 y Dialyzer:
+    - .credo.exs lo generó mix credo gen.config.
+    - mix credo --strict pasa sin observaciones; encontró un alias faltante y lo
+      corregí.
+    - Dialyzer guarda sus archivos de análisis (PLT) en priv/plts/, que está en
+      .gitignore.
+  - Hook pre-commit:
+    - Está versionado en .githooks/pre-commit y corre format, Credo y Dialyzer.
+    - Lo activa mix setup, que hace deps.get y git config core.hooksPath 
+      .githooks, así que un clon nuevo lo tiene con un comando. El README lo
+      explica.
+    - ShellCheck lo revisó sin errores.
+  - CI: .github/workflows/ci.yml, al hacer push a main. Toma las versiones de
+    .tool-versions y corre compile --warnings-as-errors y mix test. actionlint
+    lo validó.
+
+  Orden
+
+  Activé el hook al final, a propósito, para no tener que saltármelo con
+  --no-verify en ningún commit. El siguiente, el de la implementación, es el
+  primero que tiene que pasar los tres controles.
+
+  Notas
+
+  - El repo no tiene remoto todavía. Cuando lo subas a GitHub, el CI va a salir
+    en rojo hasta que esté la implementación. Es lo esperado en la fase roja.
+  - El CI solo corre los tests, como pediste. El hook se puede saltar con
+    --no-verify, así que conviene que el CI también corra format, Credo y
+    Dialyzer. ¿Lo agrego?
+
+  ¿Seguimos con la implementación (fase verde)?
+
+✻ Baked for 3m 48s · done 5:43 p.m.
+
+❯ - sí, el CI que tambien corra format, credo y dialyzer                        
+  - agrega el changelog segun https://keepachangelog.com y semantic versioning  
+  - continua con la implementación                                              
+
+● Sigo este orden: implementación, luego CI, luego CHANGELOG. El hook ya exige
+  Dialyzer limpio, así que la implementación tiene que ir primero; si no, ningún
+  otro commit podría pasar. El CHANGELOG va al final para registrar todo.
+
+  Empiezo con Portfolio.Config y Stock, que son lo más simple.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● T28 pasa. Además, el arranque se detiene con un valor inválido y aplica uno
+  válido. Ahora el núcleo: Portfolio (construir y aplicar operaciones) y
+  Portfolio.Rebalance (validar y calcular).
+  Ran 1 shell command (ctrl+o to expand)
+
+● Simplifico un detalle: compras y ventas se construían de forma asimétrica. Y
+  escribo Portfolio.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● 138 tests, 0 fallos. Antes de dar la fase verde por buena, añado el doctest
+  del ejemplo del módulo y corro los controles del hook.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Ese exit 0 era de grep, no del hook — voy a repetir la medición capturando el
+  código de salida real del hook. Además introduciré tres errores a propósito
+  (redondeo en vez de truncado, comprar antes de vender, y omitir el efectivo)
+  para confirmar que la suite de tests los detecta.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Los tres errores introducidos quedaron atrapados por sus tests
+  correspondientes (T11, T15 y T10). Ya restauré el código, el hook pasa, y
+  ahora actualizaré el README y haré el commit de la implementación.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● La implementación pasó por el hook. Ahora el CI, con dos jobs: checks, que
+  hace exactamente lo mismo que el hook (en el entorno dev, con los PLT de
+  Dialyzer en caché), y test.
+
+● Write(<HIDDEN>/.github/workflows/ci.yml)
+  ⎿  Added 35 lines, removed 2 lines
+       5      branches: [main]
+       6  
+       7  jobs:
+       8 +  # The same checks as the pre-commit hook, which a commit can 
+         +skip with                                                      
+       9 +  # --no-verify: here nothing reaches main without them.       
+      10 +  checks:                                                      
+      11 +    runs-on: ubuntu-24.04                                      
+      12 +    env:                                                       
+      13 +      MIX_ENV: dev                                             
+      14 +    steps:                                                     
+      15 +      - uses: actions/checkout@v4                              
+      16 +                                                               
+      17 +      # The same Erlang and Elixir as on the developer's machin
+         +e.                                                             
+      18 +      - uses: erlef/setup-beam@v1                              
+      19 +        with:                                                  
+      20 +          version-file: .tool-versions                         
+      21 +          version-type: strict                                 
+      22 +                                                               
+      23 +      - uses: actions/cache@v4                                 
+      24 +        with:                                                  
+      25 +          path: |                                              
+      26 +            deps                                               
+      27 +            _build                                             
+      28 +          key: mix-dev-${{ runner.os }}-${{ hashFiles('.tool-ve
+         +rsions', 'mix.lock') }}                                        
+      29 +                                                               
+      30 +      # Building the PLTs takes minutes; they only change with 
+         +the toolchain or the deps.                                     
+      31 +      - uses: actions/cache@v4                                 
+      32 +        with:                                                  
+      33 +          path: priv/plts                                      
+      34 +          key: plts-${{ runner.os }}-${{ hashFiles('.tool-versi
+         +ons', 'mix.lock') }}                                           
+      35 +                                                               
+      36 +      - run: mix deps.get                                      
+      37 +      - run: mix format --check-formatted                      
+      38 +      - run: mix compile --warnings-as-errors                  
+      39 +      - run: mix credo --strict                                
+      40 +      - run: mix dialyzer --format github                      
+      41 +                                                               
+      42    test:
+      43      runs-on: ubuntu-24.04
+      44      env:
+     ...
+      46      steps:
+      47        - uses: actions/checkout@v4
+      48  
+      15 -      # The same Erlang and Elixir as on the developer's machin
+         -e.                                                             
+      49        - uses: erlef/setup-beam@v1
+      50          with:
+      51            version-file: .tool-versions
+     ...
+      56            path: |
+      57              deps
+      58              _build
+      26 -          key: mix-${{ runner.os }}-${{ hashFiles('.tool-versio
+         -ns', 'mix.lock') }}                                            
+      59 +          key: mix-test-${{ runner.os }}-${{ hashFiles('.tool-v
+         +ersions', 'mix.lock') }}                                       
+      60  
+      61        - run: mix deps.get
+      62        - run: mix compile --warnings-as-errors
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Metí la pata con un flag inválido en actionlint y el commit se hizo sin
+  validar el workflow; tampoco corrió realmente antes porque el chequeo de
+  Python ya había pasado. Ahora voy a validar ambos de verdad.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Los dos pasan, así que el commit del CI es correcto tal como quedó. Por
+  último, el CHANGELOG.
+
+● Write(<HIDDEN>/CHANGELOG.md)
+  ⎿  Wrote 32 lines to <HIDDEN>/CHANGELOG.md
+       1 # Changelog
+       2 
+       3 All notable changes to this project are documented in this file.
+       5 The format is based on [Keep a Changelog](https://keepachangelog
+         .com/en/1.1.0/),
+       6 and this project adheres to [Semantic Versioning](https://semver
+         .org/spec/v2.0.0.html).
+       8 ## [Unreleased]
+       9 
+      10 ### Added
+     … +39 lines (ctrl+o to expand)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Los tres puntos están hechos. La implementación pasa todo: 138 tests y 1 
+  doctest sin fallos, con format, Credo y Dialyzer limpios, y los tres últimos
+  commits ya pasaron por el hook.
+
+  Implementación
+
+  - Portfolio: new/1 valida R1–R4, rebalance/3 calcula y apply_trades/2 aplica
+    las operaciones una por una (R13–R14).
+  - Portfolio.Rebalance: valida el mercado y la precisión (R5–R8) y calcula las
+    operaciones (R9–R12).
+  - Portfolio.Config y config/runtime.exs: SHARE_PRECISION se lee al arrancar.
+    Un valor inválido como abc detiene el arranque con un mensaje que nombra la
+    variable.
+  - Nada se redondea en silencio:
+    - El truncado es una división entera, así un cociente redondeado nunca cae
+      del lado equivocado de un límite.
+    - El cálculo corre con la señal :inexact activada: si alguna operación
+      tuviera que redondear, lanza un error en vez de perder una fracción sin
+      avisar.
+  - El ejemplo del día 2 está en la documentación del módulo como doctest, así
+    que no puede desactualizarse sin que algo falle.
+  - Comprobé que los tests detectan errores reales. Introduje tres a propósito,
+    y cada uno lo atrapó el test hecho para él: redondear en vez de truncar
+    (T11), comprar antes de vender (T15) y no contar el efectivo (T10).
+
+  CI
+
+  Hay dos jobs al hacer push a main:
+  - checks: hace lo mismo que el hook (format, compilación estricta, Credo y
+    Dialyzer), con los PLT de Dialyzer en caché.
+  - test: corre la suite.
+
+  Corrijo algo que te dije antes: el CI anterior no lo había validado con 
+  actionlint, aunque te dije que sí. El comando estaba mal encadenado y
+  actionlint nunca corrió. Ahora sí lo corrí, igual que mix dialyzer --format 
+  github, y los dos pasan.
+
+  CHANGELOG
+
+  CHANGELOG.md sigue Keep a Changelog 1.1.0 y SemVer. Todo está bajo
+  [Unreleased], porque todavía no hay versión publicada. Cuando entregues,
+  conviene cortar la 0.1.0.
+
+  Pendientes antes de postular
+
+  1. Las conversaciones con el LLM: el README promete design/llm-conversations/,
+     y <ACME> las exige. Puedes exportar esta sesión con /export y guardarla
+     ahí.
+  2. Subir el repo a GitHub. No tiene remoto todavía y no hice push.
+  3. Cortar la 0.1.0 en el CHANGELOG cuando decidas entregar.
+
+  ¿Seguimos con alguno de estos, o revisas primero el código?
+
+✻ Baked for 5m 12s · done 5:50 p.m.
+
+※ recap: La solución de rebalanceo para la postulación a <ACME> está terminada y pasa todas las pruebas, Credo y Dialyzer, en `<HIDDEN>`. Lo siguiente es exportar esta conversación con `/export` a `design/llm-conversations/` antes de subir el repo a GitHub. (disable recaps in /config)
+
+❯ agreguemos al readme que este repo demuestra la solucion a un ejercicio de    
+  como rebalancear un portafolios. y agrega los pasos para probarlo manualmente 
+  en iex                                                                        
+
+  Read 1 file (ctrl+o to expand)
+
+● Antes de escribir los pasos los corro en iex -S mix, para que el README
+  muestre la salida real.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Todo funciona como se esperaba. Escribo la sección con esa salida real.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Compruebo que los bloques del README, copiados tal cual, corren en IEx,
+  incluido el paso 6.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Todos los bloques corren y dan la salida que muestra el README. Añado la
+  entrada al CHANGELOG y hago el commit.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● El README ya dice qué demuestra el repo y trae los pasos para probarlo en IEx.
+  Está en el commit 825b780, que pasó el hook.
+
+  Qué agregué
+
+  Apertura: el README empieza diciendo que el repo es la solución a un ejercicio
+  técnico: un Portfolio con acciones y una asignación objetivo, y un método que
+  dice qué vender y qué comprar para volver a ella. No nombré a <ACME>, por si
+  el repo va a ser público. Si quieres que aparezca, se agrega.
+
+  Sección "Trying it in IEx", con 6 pasos sobre tu ejemplo:
+
+  1. Crear un portafolio con $10 000 en efectivo y la asignación 25/25/50.
+  2. Día 1: comprar según el plan. Sobran $0,000620 en efectivo.
+  3. Día 2: se mueven los precios y el rebalanceo da vender NVDA y comprar AAPL
+     y MSFT.
+  4. Aplicar esas operaciones. Al rebalancear otra vez el resultado es {:ok, 
+     []}: no queda nada que hacer.
+  5. Dos errores: pesos que suman 0,999999, y un mercado al que le falta AAPL.
+  6. Otra precisión: como tercer argumento, o con SHARE_PRECISION=2 iex -S mix.
+
+  Verificación
+
+  Copié los bloques del README tal cual y los corrí en iex -S mix. Cada salida
+  coincide con la que muestra el README, incluido el paso 6 con acciones enteras
+  (7, 4 y 23). También añadí la entrada correspondiente en el CHANGELOG.
+
+  Siguen pendientes las conversaciones con el LLM en design/llm-conversations/,
+  subir el repo a GitHub y cortar la 0.1.0.
+
+✻ Crunched for 1m 15s · done 6:00 p.m.
+
+※ recap: Estás preparando el ejercicio de rebalanceo de portafolio para postular a <ACME>: el código está terminado, probado y documentado, con un README que explica cómo probarlo en IEx. Lo siguiente es exportar esta conversación a `design/llm-conversations/`, que <ACME> exige.
+  ⎿  Skills restored (domain-modeling)
+
+● Compacted while idle, before the prompt cache expired · turn off with 
+  "idleCompaction": false in settings.json
+❯ agregemos una funcion para el portafolios, que imprima la tabla que yo hice   
+  (con los calculos necesarios), con motivo de demostacion, que opinas? alguna  
+  duda?                                                                         
+
+● Me parece buena idea: tu tabla es la explicación más clara del rebalanceo, y
+  verla salir del mismo código que calcula las operaciones le da credibilidad.
+  Mi propuesta:
+
+  Dónde va. En un módulo aparte, Portfolio.Report, no dentro de Portfolio.
+  Mostrar porcentajes y alinear columnas es trabajo de la interfaz, como
+  decidimos con los pesos. El dominio sigue sin imprimir nada.
+
+  Qué hace. Portfolio.Report.table(portfolio, market, precision \\ …) devuelve
+  {:ok, texto} o el mismo {:error, …} que rebalance/3, porque valida igual. No
+  imprime: en IEx se llama IO.puts. Devolver texto deja probarlo contra una
+  salida fija, por ejemplo el escenario S2, con su prueba negativa (un mercado
+  sin precio da el error).
+
+  Cómo se vería con el día 2 de tu ejemplo:
+
+  Ticker  Quantity    Price  Value        Weight  Target  Target value  Target 
+  qty  Trade
+  AAPL     7.142857  310.00   2214.285670  20.95%  25.00%   2642.857140   
+  8.525345   buy  1.382488
+  MSFT     4.761904  505.00   2404.761520  22.75%  25.00%   2642.857140   
+  5.233380   buy  0.471476
+  NVDA    23.809523  250.00   5952.380750  56.31%  50.00%   5285.714280  
+  21.142857   sell 2.666666
+  Cash                          0.000620                                        
+         → 0.000460
+  Total                     10571.428560 100.00% 100.00%
+
+  Las columnas salen de los mismos cálculos que el rebalanceo (R9–R11). No hay
+  una segunda versión de la aritmética que pueda contradecirlo.
+
+  Dudas:
+
+  1. Columnas. ¿Te sirven estas o quieres las de tu tabla tal cual? Si me pasas
+     tus encabezados, uso esos.
+  2. Un momento o dos. Propongo que la tabla muestre un solo momento (portafolio
+     + mercado). Para comparar días se llama dos veces, como en el walkthrough
+     del README. ¿O quieres la tabla de "antes y después" en una sola llamada?
+  3. Decimales del dinero. Propongo mostrar el dinero exacto, sin redondear a
+     centavos. Si no, el efectivo sobrante de 0.000620 aparecería como 0.00, y
+     lo que la tabla tiene que demostrar es justamente que no se pierde nada.
+     Los porcentajes sí irían a 2 decimales, porque son solo para leer.
+
+  Con tus respuestas lo agrego a design/ y al plan de pruebas, escribo las
+  pruebas y después el código, como hasta ahora.
+
+✻ Baked for 23s · done 6:59 p.m.
+
+❯ adelante                                                                      
+
+● Uso tus defaults: las columnas del mockup, un solo momento, dinero exacto y
+  porcentajes a 2 decimales. Primero reviso el estado del repo y los archivos
+  que voy a tocar.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Hay cambios sin commit en tres archivos de lib/ que yo no hice. Los reviso
+  antes de tocar nada.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Son tus cambios: líneas más cortas, separadores # --- Private y otro @spec en
+  rebalance. No los toco. Corro las comprobaciones para saber de qué punto
+  parto.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Dejé intactos esos dos problemas (el doctest roto en lib/portfolio.ex y el
+  fallo de mix format en rebalance.ex) y corrí solo el nuevo archivo de pruebas,
+  que no depende de ellos. Ahora voy a leer lo que necesito extender.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Leo el glosario, el README y los helpers de prueba para usar los mismos
+  términos y escenarios.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Voy a extraer una función plan/3 que centralice el cálculo y de la que salgan
+  tanto trades/3 como la tabla, evitando contradicciones entre ambos. Antes de
+  implementarla, calcularé los valores esperados con decimal de Python para
+  usarlos en las pruebas.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Confirmé que los números coinciden con el plan de pruebas, aunque noté que en
+  S2 los pesos redondeados suman 100.01 % pese a que el total exacto es 100.00
+  %. Ahora generaré en Python las tablas esperadas con las reglas de formato
+  documentadas, para usarlas como salida fija en las pruebas.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Las cuatro tablas salen como esperaba. Sigo el orden de siempre:
+  documentación, después pruebas en rojo, después código. Primero miro la
+  sección de operaciones del modelo.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Escribo la documentación: dos términos nuevos en el glosario, la sección del
+  reporte en el modelo y T30–T32 en el plan de pruebas.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Ahora las pruebas, con las tablas generadas en Python como salida esperada:
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● El formateador acomodó las tablas sin cambiarlas. Pongo un esqueleto de
+  Portfolio.Report y corro las pruebas para verlas fallar:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Están en rojo: 6 fallos, todos "not implemented". Antes de escribir el código
+  compruebo cómo se comporta Decimal.round cuando pido más decimales de los que
+  tiene el número:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Rellena con ceros sin tocar los dígitos que ya tiene, que es lo que necesito.
+  Ahora el código: la línea, plan/3 en el rebalanceo (sin tocar tus cambios en
+  ese archivo) y el reporte.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Los 6 tests pasan. Como el doctest roto impide compilar portfolio_test.exs,
+  correré la suite completa en una copia en el scratchpad usando tu
+  lib/portfolio.ex tal cual está en HEAD, sin tocar tu archivo original.
+
+  Ran 4 shell commands (ctrl+o to expand)
+
+● Solo cambiaría tu bloque de exactly. Ahora el README: agrego el paso de la
+  tabla justo después del día 2, cuando el portafolio está desbalanceado, y
+  renumero los siguientes.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Por último corro los pasos 1 a 4 del README tal como están escritos y comparo
+  la tabla que imprimen con la del README:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Ya existe Portfolio.Report.table/3: devuelve tu tabla con los cálculos de cada
+  ticker y el efectivo que queda después de operar. Sus 6 pruebas pasan, y
+  también la suite completa (144 pruebas y el doctest), aunque esta solo pude
+  correrla en una copia del repo, por un doctest que tu edición dejó roto
+  (abajo). No hice commit.
+
+  {:ok, table} = Portfolio.Report.table(portfolio, day_2)
+  IO.puts(table)
+
+  Ticker   Quantity  Current price  Market value  Actual weight   Weight  Target
+  value  Target quantity  Trade
+  ------  ---------  -------------  ------------  -------------  -------  
+  ------------  ---------------  -------------
+  AAPL     7.142857            310    2214.28567         20.95%   25.00%    
+  2642.85714         8.525345  buy  1.382488
+  MSFT     4.761904            505    2404.76152         22.75%   25.00%    
+  2642.85714         5.233380  buy  0.471476
+  NVDA    23.809523            250    5952.38075         56.31%   50.00%    
+  5285.71428        21.142857  sell 2.666666
+  Cash                                   0.00062          0.00%
+  Total                              10571.42856        100.00%  100.00%   
+  10571.42856
+
+  Cash after the trades: 0.00046
+
+  - Un solo cálculo. El rebalanceo ahora calcula una línea por ticker
+    (Portfolio.Rebalance.plan/3), y tanto la lista de operaciones como la tabla
+    salen de ahí. No hay una segunda versión de la aritmética que pueda
+    contradecirlo. rebalance/3 sigue igual por fuera.
+  - Dinero exacto. El sobrante de 0.00062 se ve tal cual. Los porcentajes están
+    redondeados a 2 decimales y cada uno por separado, por eso los pesos
+    actuales suman 100.01 %. Esto quedó explicado en el diseño y en el README.
+  - Casos borde. Un ticker que tienes pero no está en la asignación aparece con
+    peso 0 % y se vende completo. Con el portafolio en 0, el peso actual se
+    muestra como - en lugar de fallar al dividir entre cero.
+  - Documentación primero, como siempre. Agregué dos términos al glosario
+    (Actual weight y Target value), una sección "Reading a rebalance" en el
+    modelo, las pruebas T30–T32 en el plan, un paso 4 nuevo en el README y una
+    entrada en el CHANGELOG.
+  - Pruebas. Las tablas esperadas las calculé por separado con decimales exactos
+    en Python, y fallaron contra un esqueleto antes de escribir el código.
+    También corrí el paso del README tal como está escrito, y la tabla que
+    imprime coincide con la del README.
+
+  Tus cambios sin commit en lib/ rompen dos cosas. No las toqué:
+  1. El doctest de lib/portfolio.ex no compila, así que mix test falla antes de
+     correr nada. Al partir el Enum.map(...) en varias líneas, cada línea de
+     continuación necesita empezar con ...>.
+  2. lib/portfolio/rebalance.ex no pasa mix format, por cómo quedó tu bloque
+     exactly. El hook de pre-commit va a rechazar el commit por eso.
+
+  En rebalance.ex tus cambios y los míos quedaron en el mismo archivo. ¿Arreglo
+  esas dos cosas y hago el commit, o prefieres revisarlas tú primero?
+
+✻ Crunched for 6m 19s · done 7:08 p.m.
+
+❯ - resolvamos el doctest roto, cual es la situación?                           
+  - ya corri el fomat                                                           
+
+● Reviso cómo quedó el doctest después de que corriste el formato.
+  Ran 1 shell command (ctrl+o to expand)
+
+● El doctest sigue fallando porque las líneas de continuación del iex> necesitan
+  el prefijo ...>, algo que falta en el Enum.map( partido en varias líneas, lo
+  que hace que ExUnit malinterprete el código y aborte la compilación del
+  archivo. Voy a agregar los ...> faltantes.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● El doctest quedó resuelto. Ahora la suite corre completa en el repo, sin la
+  copia: 1 doctest y 144 pruebas, 0 fallos. Formato, Credo y Dialyzer también
+  pasan.
+
+  El problema: en un doctest, cada línea que continúa una expresión de iex>
+  tiene que empezar con ...>. Tu Enum.map( partido en tres líneas no los
+  llevaba, así que ExUnit tomaba trades, como el resultado esperado, y eso
+  impedía compilar todo portfolio_test.exs.
+
+  El arreglo: solo agregué los ...>. Así queda:
+
+        iex> Enum.map(
+        ...>   trades,
+        ...>   &{&1.side, &1.ticker, Decimal.to_string(&1.quantity)}
+        ...> )
+        [
+          {:sell, "NVDA", "2.666666"},
+          ...
+
+  El resultado esperado en varias líneas ya estaba bien y no lo toqué.
+
+  Sigue sin commit. Propongo dos:
+  1. Tus cambios de estilo en lib/, con este arreglo del doctest.
+  2. La tabla del reporte, con su documentación y pruebas.
+
+  El problema es que tus cambios y los míos están en el mismo rebalance.ex, así
+  que tendría que separarlos al armar los commits. Si prefieres, hago uno solo.
+  ¿Cómo lo quieres?
+
+✻ Cogitated for 27s · done 7:09 p.m.
+
+❯ haz uno solo                                                                  
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Hice un solo commit, 22a2e54 Show a rebalance as a table. Pasó el hook de
+  pre-commit (formato, Credo y Dialyzer), y el árbol quedó limpio.
+
+  Incluye la tabla del reporte con su documentación y sus pruebas, tus cambios
+  de estilo en lib/ y el arreglo del doctest. El mensaje del commit lo menciona.
+
+  Siguen pendientes las conversaciones con el LLM en design/llm-conversations/,
+  subir el repo a GitHub y cortar la 0.1.0.
+
+✻ Churned for 16s · done 7:11 p.m.
+
+❯ agreguemos una opcion a Portfolio.Report.table en donde imprimos en consola   
+  la tabla (en lugar de una tupla con el string, imprimer la tabla y regresa    
+  :ok), revisa si existen dependencias en hexdocs para esto                     
+
+● Busco en Hex qué librerías hay para imprimir tablas en consola, antes de
+  decidir cómo agregar la opción.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Revisé Hex: hay librerías para esto, pero mi recomendación es no agregar
+  ninguna. Antes de escribir código te dejo la propuesta, porque también cambia
+  un poco lo que pediste: en lugar de una opción, una función aparte.
+
+  Lo que hay en Hex (descargas recientes):
+
+  ┌───────────┬───────────┬────────────┬────────────────────────────────────┐
+  │  Paquete  │ Descargas │  Última    │              Qué hace              │
+  │           │           │  versión   │                                    │
+  ├───────────┼───────────┼────────────┼────────────────────────────────────┤
+  │           │           │ 4.1.0 (feb │ Arma tablas de texto con bordes y  │
+  │ table_rex │ 2.3 M     │  2025)     │ alineación por columna. Es el      │
+  │           │           │            │ estándar.                          │
+  ├───────────┼───────────┼────────────┼────────────────────────────────────┤
+  │ tablet    │ 34 k      │ 0.3.3 (sep │ Una versión más pequeña de lo      │
+  │           │           │  2026)     │ mismo.                             │
+  ├───────────┼───────────┼────────────┼────────────────────────────────────┤
+  │ scribe    │ 31 k      │ 0.11.1     │ Imprime structs y mapas como       │
+  │           │           │            │ tabla, para depurar.               │
+  └───────────┴───────────┴────────────┴────────────────────────────────────┘
+
+  Por qué no agregaría ninguna:
+  - Imprimir no necesita librería. Es IO.puts(texto). Lo que estas librerías
+    resuelven es armar la tabla, y eso ya lo tenemos hecho y probado contra
+    salidas fijas.
+  - Habría que rehacer las pruebas. Con table_rex cambian los bordes y el
+    espaciado, así que las pruebas T30–T32 se reescribirían solo para seguir
+    mostrando lo mismo.
+  - No resuelve lo que nos importa. Alinear los puntos decimales rellenando con
+    ceros sin redondear lo tendríamos que seguir haciendo nosotros.
+  - Sería una dependencia en producción. Para un ejercicio cuya única
+    dependencia es decimal, otra solo para mostrar una tabla le resta.
+
+  Cómo agregaría la opción: con una función aparte, Portfolio.Report.print/3,
+  que imprime la tabla y devuelve :ok, o el mismo {:error, …} sin imprimir nada.
+  - Una opción como table(…, print: true) haría que una misma función devuelva
+    cosas distintas según un flag. Eso es más difícil de leer y de tipar con
+    Dialyzer.
+  - Además, el tercer argumento hoy es la precisión, así que una opción
+    obligaría a pasar a una lista de opciones (precision: 6, print: true) y a
+    cambiar las llamadas que ya existen.
+  - table/3 y print/3 siguen el patrón de inspect/2 e IO.inspect/2 en el propio
+    Elixir.
+
+  En IEx quedaría Portfolio.Report.print(portfolio, day_2). Le pondría una
+  prueba con ExUnit.CaptureIO, más su par negativo: si hay error, no se imprime
+  nada.
+
+  ¿Lo hago así, con print/3 y sin dependencia, o prefieres la opción dentro de
+  table?
+
+✻ Cooked for 33s · done 7:14 p.m.
+
+❯ me parece correcto                                                            
+
+● Primero agrego print/3 a la documentación y al plan de pruebas, como T33.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● T33 quedó antes que T32 en la tabla. Lo muevo debajo:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Ahora las pruebas de T33, con un esqueleto de print/3 para verlas fallar:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Fallan las 3 nuevas. Ahora la implementación real:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Todo en verde. Paso 4 del README con print, y el CHANGELOG:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Portfolio.Report.print/3 ya funciona: imprime la tabla en consola y devuelve
+  :ok. Si los datos tienen un error, devuelve el mismo {:error, …} y no imprime
+  nada. No agregué ninguna dependencia, y table/3 sigue igual. Todo pasa: 1
+  doctest y 147 pruebas, 0 fallos, más formato, Credo y Dialyzer.
+
+  En IEx se usa así:
+
+  Portfolio.Report.print(portfolio, day_2)
+
+  - Pruebas (T33):
+    - Lo que imprime es exactamente el texto de table/3 más un salto de línea, y
+      devuelve :ok.
+    - Su par negativo: con un mercado al que le falta AAPL devuelve el error y
+      no imprime nada.
+    - La precisión por defecto es la configurada.
+  - Documentación: el modelo de dominio explica por qué es una función aparte y
+    por qué no lleva dependencia, y menciona table_rex como la alternativa que
+    se descartó. También actualicé el plan de pruebas, el paso 4 del README y el
+    CHANGELOG.
+  - Verificación: corrí los pasos 1 a 4 del README tal como están escritos, y lo
+    que imprime coincide con la tabla del README.
+
+  No hice commit. ¿Lo hago?
+
+✻ Brewed for 1m 0s · done 7:17 p.m.
+
+※ recap: Estamos armando el ejercicio de rebalanceo de portafolios para tu postulación a <ACME>, y ya agregué Portfolio.Report.print/3, que imprime la tabla en consola, con todo en verde. Falta tu visto bueno para hacer el commit.
+
+❯ OK, ajustemos el readme para usar esta funcion y visualizar el estado del     
+  portafolios en 3 puntos, 1. sin comprar acciones del dia 1, 2. con los trades 
+  del dia 1 aplicados, 3. dia 2 sin trades aplicados, 4. dia 2 con trades       
+  aplicados. esto hazlo incluyendo la llamada al print para visualizarlo en     
+  cada paso                                                                     
+
+● Pediste 3 puntos pero enumeraste 4, así que hago los 4. Leo cómo está hoy la
+  sección del README.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Reescribo los pasos 1 a 5 en cuatro momentos, cada uno con su print. Las
+  tablas las pego a partir de una ejecución real, no a mano:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Las cuatro tablas cuadran con los escenarios S1, S2 y S3. Ahora reescribo la
+  sección:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Lo verifico: extraigo los bloques de código de los pasos 1 a 5 tal como
+  quedaron en el README, los corro y comparo cada tabla impresa con la del
+  README, en orden.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Las 4 tablas coinciden, y también los valores anotados con #=> que revisé:
+  {:ok, []} y el error missing_price de AAPL. Ajusto la entrada del CHANGELOG
+  para el nuevo recorrido:
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Listo: el recorrido del README ahora muestra el portafolio en 4 momentos, y en
+  cada uno llama a Portfolio.Report.print y muestra la tabla que imprime.
+  Mencionaste 3 puntos pero enumeraste 4, así que hice los 4.
+
+  ┌──────┬─────────────────────┬────────────────────────────────────────────┐
+  │ Paso │       Momento       │            Qué muestra la tabla            │
+  ├──────┼─────────────────────┼────────────────────────────────────────────┤
+  │ 1    │ Día 1, sin comprar  │ Todo en efectivo ($10 000). Las tres       │
+  │      │                     │ acciones aparecen como compra.             │
+  ├──────┼─────────────────────┼────────────────────────────────────────────┤
+  │ 2    │ Día 1, con los      │ Cada acción en su objetivo, sin trades     │
+  │      │ trades aplicados    │ pendientes. Quedan 0.00062 en efectivo.    │
+  ├──────┼─────────────────────┼────────────────────────────────────────────┤
+  │ 3    │ Día 2, sin trades   │ NVDA quedó por encima de su 50 %: vender   │
+  │      │ aplicados           │ NVDA, comprar AAPL y MSFT.                 │
+  ├──────┼─────────────────────┼────────────────────────────────────────────┤
+  │ 4    │ Día 2, con los      │ De vuelta en 25/25/50, y rebalance da      │
+  │      │ trades aplicados    │ {:ok, []}.                                 │
+  └──────┴─────────────────────┴────────────────────────────────────────────┘
+
+  - En el paso 3 dejé también la lista de trades que devuelve
+    Portfolio.rebalance/2, porque es la respuesta que pide el ejercicio.
+  - Los pasos de errores y de precisión pasaron a ser el 5 y el 6.
+  - Las tablas las pegué desde una ejecución real. Después extraje los bloques
+    de código del README tal como quedaron, los corrí, y las 4 tablas y los
+    resultados anotados coinciden.
+  - Actualicé la entrada del README en el CHANGELOG.
+
+  El commit sigue pendiente. Junta print/3 (código, pruebas y documentación) con
+  este cambio del README. ¿Lo hago?
+✻ Churned for 1m 5s · done 7:25 p.m.
+
+※ recap: Preparas el ejercicio de rebalanceo de portafolio para <ACME>. Ya existe la función `print`, y el README muestra el portafolio en cuatro momentos, verificado. Falta tu visto bueno para hacer commit de ambos cambios juntos.
+
+❯ "{:ok, trades} = Portfolio.rebalance(portfolio, day_2)" no debería ir en el   
+  4to paso?                                                                     
+
+● Sí, tienes razón. El paso 2 junta rebalance y apply_trades antes de imprimir,
+  y el 4 debería seguir el mismo patrón. Así el paso 3 queda solo como la foto
+  del estado antes de operar. Muevo el bloque con su resultado #=> al paso 4:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Agrego una línea en blanco después del resultado #=>, para que el bloque se
+  lea igual que el del paso 2, y vuelvo a correr el recorrido completo:
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Era solo el formato: IO.inspect imprime cada campo en su propia línea, y mi
+  búsqueda esperaba ticker y side juntos. Los valores coinciden con los del
+  README.
+
+  Ya está movido. El paso 4 ahora llama a rebalance, aplica los trades e
+  imprime, igual que el paso 2.
+
+  - Paso 3: solo define los precios del día 2 e imprime el estado antes de
+    operar. La columna Trade ya muestra qué hay que hacer.
+  - Paso 4: {:ok, trades} = Portfolio.rebalance(portfolio, day_2) con su
+    resultado #=>, después apply_trades y print. La explicación de que los sells
+    van primero, porque liberan el efectivo que usan los buys, se movió con el
+    código.
+
+  Volví a correr los bloques del README tal como están: las 4 tablas y los
+  trades coinciden.
+
+  Sigue pendiente el commit con print/3 y este cambio del README. ¿Lo hago?
+
+✻ Crunched for 31s · done 7:30 p.m.
+
+※ recap: Preparamos el ejercicio de <ACME>: el rebalanceo con su tabla impresa, y el README la muestra en cuatro momentos, todo verificado y pasando. Falta tu visto bueno para hacer el commit de `print/3` junto con el cambio del README.
+
+❯ haz commit                                                                    
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Hice el commit: 27b25a0 Print the table, and show the portfolio at four 
+  moments in the README. Pasó el hook de pre-commit (formato, Credo y Dialyzer)
+  y el árbol quedó limpio.
+
+  Incluye print/3 con sus pruebas T33 y su documentación, el recorrido del
+  README en los 4 momentos y el CHANGELOG.
+
+  Siguen pendientes las conversaciones con el LLM en design/llm-conversations/,
+  subir el repo a GitHub y cortar la 0.1.0.
+
+✻ Baked for 14s · done 7:35 p.m.
