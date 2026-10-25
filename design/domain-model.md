@@ -28,7 +28,7 @@ All money, prices, quantities and weights are exact decimals. No floating point 
 | Build a portfolio | holdings, cash, allocation | the portfolio, or an error (`E1`–`E4`) | Enforces `R1`–`R4` once, so every portfolio that exists is valid. |
 | Rebalance | a portfolio, a market, a share precision (the configured one unless given, see [Configuration](#configuration)) | the list of trades, or an error (`E5`–`E8`) | The question the exercise asks. Pure: it changes nothing. |
 | Apply trades | a portfolio, a list of trades | the portfolio after them, or an error (`E9`–`E10`) | Lets the tests check that a rebalance really does what it says (`INV1`, `INV5`). |
-| Show the rebalance as a table | the same as a rebalance | a text table of the computation, or the rebalance's error | For a person to read, not part of the domain: see [Reading a rebalance](#reading-a-rebalance). |
+| Show the rebalance as a table | the same as a rebalance | a text table of the computation (or printed to the console), or the rebalance's error | For a person to read, not part of the domain: see [Reading a rebalance](#reading-a-rebalance). |
 
 ## Rules
 
@@ -157,6 +157,8 @@ The table is the interface, not the domain, so it lives apart from the aggregate
 - **Percentages for reading only.** Weights become percentages here, and only here, rounded half up to two decimals. Each one is rounded on its own, so a column can add up to a hair off its total: day 2's actual weights show 100.01 %. An actual weight is undefined while the portfolio value is 0, and shows as `-`.
 
 An invalid input gives the same error the rebalance gives, and no table.
+
+`Portfolio.Report.print/3` takes the same arguments, writes the table to the console and returns `:ok`, or returns the error and writes nothing. It is a separate function, not an option of `table/3`, so neither one's return depends on a flag: `table/3` and `print/3` are to each other what `inspect/2` is to `IO.inspect/2`. Printing needs nothing but `IO.puts/1`, so the table takes no dependency ([Hex](https://hex.pm) has `table_rex`, but the alignment that matters here, decimal points lined up without rounding, would still be ours).
 
 ## Configuration
 

@@ -102,6 +102,7 @@ The table of *Reading a rebalance* in the domain model. Each case compares the w
 | T30 | the table is the rebalance's computation | S2 gives the table of the domain model, row for row, with cash after 0.00046 | a market missing AAPL giving a table: it gives E5, as the rebalance does, and no text |
 | T31 | money is shown exact | S1: cash 10000 and nothing held, its cash after 0.00062 shown as such | rounding money to cents, which would show the residual cash as 0.00 |
 | T32 | the edges of the table | S7: A, held and not allocated, at weight 0.00 %, target 0, sell 5; S10: portfolio value 0, every actual weight `-` and no trade | a division by the portfolio value when it is 0; a ticker left out of the table because it has no weight |
+| T33 | printing the table | S2: `print/3` writes exactly the text of `table/3`, followed by a newline, and returns `:ok` | a market missing AAPL printing anything: it returns E5 and writes nothing |
 
 ## Coverage
 
@@ -113,4 +114,4 @@ The table of *Reading a rebalance* in the domain model. Each case compares the w
 | R13–R14, E9–E10 | T17–T20 |
 | INV1–INV7 | T21–T27 |
 | Configuration | T28 |
-| Reading a rebalance | T30–T32 |
+| Reading a rebalance | T30–T33 |

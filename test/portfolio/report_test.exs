@@ -1,7 +1,8 @@
 defmodule Portfolio.ReportTest do
-  @moduledoc "Reading a rebalance: T30–T32 of `design/test-plan.md`."
+  @moduledoc "Reading a rebalance: T30–T33 of `design/test-plan.md`."
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureIO
   import Portfolio.Test.Helpers
 
   alias Portfolio.Report
@@ -92,6 +93,34 @@ defmodule Portfolio.ReportTest do
     test "the precision defaults to the configured one" do
       portfolio = portfolio!([], "10", A: "1")
       assert Report.table(portfolio, market(A: 3)) == Report.table(portfolio, market(A: 3), 6)
+    end
+  end
+
+  describe "T33: printing the table" do
+    test "the case: S2 is written to the console exactly as table/3 gives it, and :ok" do
+      s = Scenarios.fetch("S2")
+      {:ok, table} = Report.table(s.portfolio, s.market, s.precision)
+
+      {result, output} =
+        with_io(fn -> Report.print(s.portfolio, s.market, s.precision) end)
+
+      assert result == :ok
+      assert output == table <> "\n"
+    end
+
+    test "ruled out: a market missing AAPL prints nothing, and gives the rebalance's error" do
+      s = Scenarios.fetch("S2")
+      market = Enum.reject(s.market, &(&1.ticker == "AAPL"))
+
+      assert {{:error, {:missing_price, "AAPL"}}, ""} =
+               with_io(fn -> Report.print(s.portfolio, market, 6) end)
+    end
+
+    test "the precision defaults to the configured one" do
+      portfolio = portfolio!([], "10", A: "1")
+
+      assert capture_io(fn -> Report.print(portfolio, market(A: 3)) end) ==
+               capture_io(fn -> Report.print(portfolio, market(A: 3), 6) end)
     end
   end
 end

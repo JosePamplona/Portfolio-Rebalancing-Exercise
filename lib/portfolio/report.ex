@@ -9,8 +9,11 @@ defmodule Portfolio.Report do
   Money and quantities are shown exact; weights become percentages here, and
   only here.
 
+      Portfolio.Report.print(portfolio, market)
+
+  or, for the text itself:
+
       {:ok, table} = Portfolio.Report.table(portfolio, market)
-      IO.puts(table)
   """
 
   alias Portfolio.{Config, Rebalance, Stock, Trade}
@@ -41,6 +44,16 @@ defmodule Portfolio.Report do
          {:ok, after_trades} <- Portfolio.apply_trades(portfolio, plan.trades) do
       {:ok, wide(fn -> render(portfolio, plan, after_trades.cash) end)}
     end
+  end
+
+  @doc """
+  Writes the table of `table/3` to the console and returns `:ok`, or returns
+  the rebalance's error and writes nothing.
+  """
+  @spec print(Portfolio.t(), [Stock.t()], non_neg_integer()) ::
+          :ok | {:error, Portfolio.error()}
+  def print(%Portfolio{} = portfolio, market, precision \\ Config.share_precision()) do
+    with {:ok, table} <- table(portfolio, market, precision), do: IO.puts(table)
   end
 
   # --- Private ----------------------------------------------------------------

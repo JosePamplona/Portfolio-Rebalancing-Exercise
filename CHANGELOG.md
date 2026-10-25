@@ -31,9 +31,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`mix setup` turns it on), and CI running the same checks and the tests on
   every push to `main`.
 - The README says what the repository answers, and walks through the worked
-  example step by step in IEx.
+  example step by step in IEx, printing the portfolio as a table at four
+  moments: day 1 and day 2, each before and after its trades.
 - `Portfolio.Report.table/3`: a rebalance laid out as a table, one row per
   ticker from what is held to the trade, for a demonstration. It reads every
   number from the rebalance's own computation (`Portfolio.Rebalance.plan/3`),
   shows money and quantities exact, and is the only place weights become
-  percentages.
+  percentages. `Portfolio.Report.print/3` writes it to the console and
+  returns `:ok`, with no dependency added.
