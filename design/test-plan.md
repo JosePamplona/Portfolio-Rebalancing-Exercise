@@ -93,6 +93,16 @@ Each invariant is checked on every scenario S1–S10. Then its checker is run ag
 |---|---|---|---|
 | T28 | `SHARE_PRECISION` | unset → 6; `"0"` → 0; `"2"` → 2 | `""`, `"-1"`, `"2.5"`, `"abc"` → an error naming `SHARE_PRECISION` |
 
+## Reading a rebalance: `report_test.exs`
+
+The table of *Reading a rebalance* in the domain model. Each case compares the whole text, so a column out of place fails as surely as a wrong number.
+
+| Test | Proves | The case | What it rules out |
+|---|---|---|---|
+| T30 | the table is the rebalance's computation | S2 gives the table of the domain model, row for row, with cash after 0.00046 | a market missing AAPL giving a table: it gives E5, as the rebalance does, and no text |
+| T31 | money is shown exact | S1: cash 10000 and nothing held, its cash after 0.00062 shown as such | rounding money to cents, which would show the residual cash as 0.00 |
+| T32 | the edges of the table | S7: A, held and not allocated, at weight 0.00 %, target 0, sell 5; S10: portfolio value 0, every actual weight `-` and no trade | a division by the portfolio value when it is 0; a ticker left out of the table because it has no weight |
+
 ## Coverage
 
 | Line of the model | Tests |
@@ -103,3 +113,4 @@ Each invariant is checked on every scenario S1–S10. Then its checker is run ag
 | R13–R14, E9–E10 | T17–T20 |
 | INV1–INV7 | T21–T27 |
 | Configuration | T28 |
+| Reading a rebalance | T30–T32 |

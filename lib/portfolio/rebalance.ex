@@ -13,17 +13,36 @@ defmodule Portfolio.Rebalance do
   Whatever truncation leaves unspent stays as cash, so nothing is lost.
   """
 
+  alias Portfolio.Rebalance.Line
   alias Portfolio.{Stock, Trade}
+
+  @typedoc """
+  The whole computation: the portfolio value, one line per ticker held or
+  allocated (by ticker), and the trades in the order they are to be applied.
+  """
+  @type plan :: %{value: Decimal.t(), lines: [Line.t()], trades: [Trade.t()]}
 
   @doc "Validates the inputs (E5–E8) and computes the trades."
   @spec trades(Portfolio.t(), [Stock.t()], non_neg_integer()) ::
           {:ok, [Trade.t()]} | {:error, Portfolio.error()}
   def trades(%Portfolio{} = portfolio, market, precision) do
+    with {:ok, plan} <- plan(portfolio, market, precision), do: {:ok, plan.trades}
+  end
+
+  @doc """
+  Validates the inputs (E5–E8) and computes every step on the way to the
+  trades, for whoever needs to show how they were reached.
+  """
+  @spec plan(Portfolio.t(), [Stock.t()], non_neg_integer()) ::
+          {:ok, plan()} | {:error, Portfolio.error()}
+  def plan(%Portfolio{} = portfolio, market, precision) do
     with :ok <- check_market(portfolio, market),
          :ok <- check_precision(portfolio, precision) do
       {:ok, exactly(fn -> compute(portfolio, prices(market), precision) end)}
     end
   end
+
+  # --- Private ----------------------------------------------------------------
 
   # R5, R6, R7, in that order: the lowest-numbered rule is the error reported.
   defp check_market(portfolio, market) do
@@ -62,19 +81,37 @@ defmodule Portfolio.Rebalance do
   defp compute(portfolio, prices, precision) do
     value = portfolio_value(portfolio, prices)
 
-    trades =
+    lines =
       portfolio
       |> tickers()
-      |> Enum.map(fn ticker ->
-        price = prices[ticker]
-        weight = Map.get(portfolio.allocation, ticker, zero())
-        target = target_quantity(Decimal.mult(value, weight), price, precision)
-        trade(ticker, Decimal.sub(target, held(portfolio, ticker)), price)
-      end)
-      |> Enum.reject(&is_nil/1)
+      |> Enum.map(&line(portfolio, &1, prices[&1], value, precision))
 
-    {sells, buys} = Enum.split_with(trades, &(&1.side == :sell))
-    sells ++ buys
+    {sells, buys} =
+      lines
+      |> Enum.map(& &1.trade)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.split_with(&(&1.side == :sell))
+
+    %{value: value, lines: lines, trades: sells ++ buys}
+  end
+
+  # R10 and R11 for one ticker; a ticker with no weight gets a target of 0.
+  defp line(portfolio, ticker, price, value, precision) do
+    quantity = held(portfolio, ticker)
+    weight = Map.get(portfolio.allocation, ticker, zero())
+    target_value = Decimal.mult(value, weight)
+    target = target_quantity(target_value, price, precision)
+
+    %Line{
+      ticker: ticker,
+      quantity: quantity,
+      price: price,
+      market_value: Decimal.mult(quantity, price),
+      weight: weight,
+      target_value: target_value,
+      target_quantity: target,
+      trade: trade(ticker, Decimal.sub(target, quantity), price)
+    }
   end
 
   # R9

@@ -32,3 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   every push to `main`.
 - The README says what the repository answers, and walks through the worked
   example step by step in IEx.
+- `Portfolio.Report.table/3`: a rebalance laid out as a table, one row per
+  ticker from what is held to the trade, for a demonstration. It reads every
+  number from the rebalance's own computation (`Portfolio.Rebalance.plan/3`),
+  shows money and quantities exact, and is the only place weights become
+  percentages.

@@ -28,6 +28,7 @@ All money, prices, quantities and weights are exact decimals. No floating point 
 | Build a portfolio | holdings, cash, allocation | the portfolio, or an error (`E1`–`E4`) | Enforces `R1`–`R4` once, so every portfolio that exists is valid. |
 | Rebalance | a portfolio, a market, a share precision (the configured one unless given, see [Configuration](#configuration)) | the list of trades, or an error (`E5`–`E8`) | The question the exercise asks. Pure: it changes nothing. |
 | Apply trades | a portfolio, a list of trades | the portfolio after them, or an error (`E9`–`E10`) | Lets the tests check that a rebalance really does what it says (`INV1`, `INV5`). |
+| Show the rebalance as a table | the same as a rebalance | a text table of the computation, or the rebalance's error | For a person to read, not part of the domain: see [Reading a rebalance](#reading-a-rebalance). |
 
 ## Rules
 
@@ -120,6 +121,43 @@ Portfolio value: **10,571.428560**. The rebalance gives:
 
 Cash after: 0.000620 + 666.666500 − 428.571280 − 238.095380 = **0.000460**, less than the bound of `INV3`: (310 + 505 + 250) × 10⁻⁶ = 0.001065. Positions plus cash add up to 10,571.428560 again (`INV1`).
 
+## Reading a rebalance
+
+A list of trades says what to do, not why. For a demonstration, `Portfolio.Report.table/3` lays the computation out as a table, one row per ticker, the way it would be worked out on paper:
+
+| Column | What it is | Rule |
+|---|---|---|
+| Quantity | what is held | |
+| Current price | from the market | |
+| Market value | quantity × current price | `R9` |
+| Actual weight | market value ÷ portfolio value | |
+| Weight | from the allocation, 0 if the ticker is not allocated | `R10` |
+| Target value | portfolio value × weight | `R10` |
+| Target quantity | target value ÷ current price, truncated | `R10` |
+| Trade | target quantity − quantity, as a buy or a sell | `R11` |
+
+A *Cash* row and a *Total* row (the portfolio value) close it, and a last line gives the cash after the trades. For the worked example, on day 2:
+
+```
+Ticker   Quantity  Current price  Market value  Actual weight   Weight  Target value  Target quantity  Trade
+------  ---------  -------------  ------------  -------------  -------  ------------  ---------------  -------------
+AAPL     7.142857            310    2214.28567         20.95%   25.00%    2642.85714         8.525345  buy  1.382488
+MSFT     4.761904            505    2404.76152         22.75%   25.00%    2642.85714         5.233380  buy  0.471476
+NVDA    23.809523            250    5952.38075         56.31%   50.00%    5285.71428        21.142857  sell 2.666666
+Cash                                   0.00062          0.00%
+Total                              10571.42856        100.00%  100.00%   10571.42856
+
+Cash after the trades: 0.00046
+```
+
+The table is the interface, not the domain, so it lives apart from the aggregate. Three things keep it from telling a different story from the rebalance:
+
+- **One computation.** The rebalance computes every column on its way to the trades, and the table reads them from it (`Portfolio.Rebalance.plan/3`). There is no second copy of the arithmetic that could disagree. The cash after comes from applying the trades.
+- **Money and quantities exact.** They are shown with every decimal they have, never rounded to cents: rounding would show the residual cash 0.00062 as 0.00, and hide the very thing the table is there to show. Each column is padded with zeros to its longest decimal part, so the points line up; trailing zeros add no digit that is not already there.
+- **Percentages for reading only.** Weights become percentages here, and only here, rounded half up to two decimals. Each one is rounded on its own, so a column can add up to a hair off its total: day 2's actual weights show 100.01 %. An actual weight is undefined while the portfolio value is 0, and shows as `-`.
+
+An invalid input gives the same error the rebalance gives, and no table.
+
 ## Configuration
 
 The share precision depends on the broker, so it is configured, not written in the code.
@@ -143,6 +181,8 @@ lib/
     ├── stock.ex              # Stock: ticker + current price, current_price/1
     ├── trade.ex              # Trade: ticker, side, quantity, amount
     ├── rebalance.ex          # the computation of R9–R12, pure
+    ├── rebalance/line.ex     # one ticker's row of that computation
+    ├── report.ex             # the computation as a table, for a person to read
     └── config.ex             # parses and checks SHARE_PRECISION
 test/
 ├── support/
@@ -152,6 +192,7 @@ test/
 ├── portfolio/rebalance_test.exs   # R5–R12, E5–E8, the worked example
 ├── portfolio/apply_trades_test.exs  # R13–R14, E9–E10
 ├── portfolio/invariants_test.exs  # INV1–INV7 over every scenario, and each checker against a broken plan
+├── portfolio/report_test.exs # the table
 └── portfolio/config_test.exs # SHARE_PRECISION
 ```
 

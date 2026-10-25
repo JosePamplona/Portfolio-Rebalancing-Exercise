@@ -35,8 +35,15 @@ defmodule Portfolio do
       ...>   %Portfolio.Stock{ticker: "NVDA", price: Decimal.new(250)}
       ...> ]
       iex> {:ok, trades} = Portfolio.rebalance(portfolio, market, 6)
-      iex> Enum.map(trades, &{&1.side, &1.ticker, Decimal.to_string(&1.quantity)})
-      [{:sell, "NVDA", "2.666666"}, {:buy, "AAPL", "1.382488"}, {:buy, "MSFT", "0.471476"}]
+      iex> Enum.map(
+      ...>   trades,
+      ...>   &{&1.side, &1.ticker, Decimal.to_string(&1.quantity)}
+      ...> )
+      [
+        {:sell, "NVDA", "2.666666"},
+        {:buy, "AAPL", "1.382488"},
+        {:buy, "MSFT", "0.471476"}
+      ]
   """
 
   alias Portfolio.{Rebalance, Stock, Trade}
@@ -92,7 +99,16 @@ defmodule Portfolio do
   `precision` defaults to the configured share precision (`SHARE_PRECISION`).
   Pure: the portfolio is not changed. Returns `{:error, error}` for E5–E8.
   """
-  @spec rebalance(t(), [Stock.t()], non_neg_integer()) :: {:ok, [Trade.t()]} | {:error, error()}
+  @spec rebalance(t(), [Stock.t()]) ::
+          {:error,
+           {:duplicate_stock, any()}
+           | {:invalid_precision, any()}
+           | {:missing_price, any()}
+           | {:non_positive_price, any()}
+           | {:quantity_exceeds_precision, any()}}
+          | {:ok, [Trade.t()]}
+  # @spec rebalance(t(), [Stock.t()], non_neg_integer()) ::
+  #         {:ok, [Trade.t()]} | {:error, error()}
   def rebalance(
         %__MODULE__{} = portfolio,
         market,
@@ -109,13 +125,19 @@ defmodule Portfolio do
   """
   @spec apply_trades(t(), [Trade.t()]) :: {:ok, t()} | {:error, error()}
   def apply_trades(%__MODULE__{} = portfolio, trades) do
-    Enum.reduce_while(trades, {:ok, portfolio}, fn trade, {:ok, current} ->
-      case apply_trade(current, trade) do
-        {:ok, next} -> {:cont, {:ok, next}}
-        error -> {:halt, error}
+    Enum.reduce_while(
+      trades,
+      {:ok, portfolio},
+      fn trade, {:ok, current} ->
+        case apply_trade(current, trade) do
+          {:ok, next} -> {:cont, {:ok, next}}
+          error -> {:halt, error}
+        end
       end
-    end)
+    )
   end
+
+  # --- Private ----------------------------------------------------------------
 
   defp apply_trade(portfolio, %Trade{side: :sell, ticker: ticker} = trade) do
     held = Map.get(portfolio.holdings, ticker, Decimal.new(0))
@@ -126,7 +148,12 @@ defmodule Portfolio do
       {:ok,
        %{
          portfolio
-         | holdings: put_holding(portfolio.holdings, ticker, Decimal.sub(held, trade.quantity)),
+         | holdings:
+             put_holding(
+               portfolio.holdings,
+               ticker,
+               Decimal.sub(held, trade.quantity)
+             ),
            cash: Decimal.add(portfolio.cash, trade.amount)
        }}
     end
@@ -141,7 +168,12 @@ defmodule Portfolio do
       {:ok,
        %{
          portfolio
-         | holdings: put_holding(portfolio.holdings, ticker, Decimal.add(held, trade.quantity)),
+         | holdings:
+             put_holding(
+               portfolio.holdings,
+               ticker,
+               Decimal.add(held, trade.quantity)
+             ),
            cash: Decimal.sub(portfolio.cash, trade.amount)
        }}
     end
@@ -156,7 +188,10 @@ defmodule Portfolio do
 
   # The first entry, by ticker, whose value breaks the rule.
   defp first_breaking(map, valid?, error) do
-    case map |> Enum.sort_by(&elem(&1, 0)) |> Enum.find(fn {_ticker, v} -> not valid?.(v) end) do
+    map
+    |> Enum.sort_by(&elem(&1, 0))
+    |> Enum.find(fn {_ticker, v} -> not valid?.(v) end)
+    |> case do
       nil -> :ok
       {ticker, _value} -> {:error, {error, ticker}}
     end
@@ -164,15 +199,26 @@ defmodule Portfolio do
 
   # R2: exactly 1, no tolerance.
   defp check_weights_sum(allocation) do
-    sum = allocation |> Map.values() |> Enum.reduce(Decimal.new(0), &Decimal.add/2)
-    if Decimal.equal?(sum, 1), do: :ok, else: {:error, {:weights_do_not_sum_to_one, sum}}
+    sum =
+      allocation
+      |> Map.values()
+      |> Enum.reduce(Decimal.new(0), &Decimal.add/2)
+
+    if Decimal.equal?(sum, 1),
+      do: :ok,
+      else: {:error, {:weights_do_not_sum_to_one, sum}}
   end
 
   # R4
-  defp check_cash(cash), do: if(non_negative?(cash), do: :ok, else: {:error, :negative_cash})
+  defp check_cash(cash) do
+    if non_negative?(cash),
+      do: :ok,
+      else: {:error, :negative_cash}
+  end
 
   # R1
-  defp in_unit_range?(weight), do: non_negative?(weight) and not Decimal.gt?(weight, 1)
+  defp in_unit_range?(weight),
+    do: non_negative?(weight) and not Decimal.gt?(weight, 1)
 
   defp non_negative?(decimal), do: not Decimal.lt?(decimal, 0)
 end

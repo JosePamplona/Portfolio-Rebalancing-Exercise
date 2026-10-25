@@ -60,6 +60,10 @@ _Avoid_: Value (alone), worth, balance
 The cash plus the market value of every holding.
 _Avoid_: Total, net worth, AUM
 
+**Actual weight**:
+The fraction of the portfolio value a holding's market value is now. Unlike a weight, it is measured, not chosen, and it is undefined while the portfolio value is 0.
+_Avoid_: Current allocation, exposure
+
 **Drift**:
 How far a holding's actual weight in the portfolio value has moved from its allocated weight, because prices moved and quantities did not.
 _Avoid_: Deviation, imbalance, skew
@@ -69,6 +73,10 @@ _Avoid_: Deviation, imbalance, skew
 **Rebalance**:
 Computing the trades that bring every holding to its allocated weight of the current portfolio value.
 _Avoid_: Adjust, reallocate, sync
+
+**Target value**:
+The part of the portfolio value the allocation assigns to a ticker: the portfolio value times its weight.
+_Avoid_: Goal amount, budget
 
 **Target quantity**:
 The quantity of a stock a holding should have after a rebalance.

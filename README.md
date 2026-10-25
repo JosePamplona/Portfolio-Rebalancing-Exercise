@@ -83,7 +83,28 @@ day_2 = [
 
 Sells come first: they free the cash the buys spend.
 
-**4. Apply them, and rebalancing again finds nothing to do.**
+**4. The same rebalance as a table**, worked out the way it would be on paper: what each holding is worth now, what it should be worth, and the trade between the two.
+
+```elixir
+{:ok, table} = Portfolio.Report.table(portfolio, day_2)
+IO.puts(table)
+```
+
+```
+Ticker   Quantity  Current price  Market value  Actual weight   Weight  Target value  Target quantity  Trade
+------  ---------  -------------  ------------  -------------  -------  ------------  ---------------  -------------
+AAPL     7.142857            310    2214.28567         20.95%   25.00%    2642.85714         8.525345  buy  1.382488
+MSFT     4.761904            505    2404.76152         22.75%   25.00%    2642.85714         5.233380  buy  0.471476
+NVDA    23.809523            250    5952.38075         56.31%   50.00%    5285.71428        21.142857  sell 2.666666
+Cash                                   0.00062          0.00%
+Total                              10571.42856        100.00%  100.00%   10571.42856
+
+Cash after the trades: 0.00046
+```
+
+Money and quantities are exact, so the 0.00062 left over shows as such. Percentages are rounded for reading, each on its own, which is why the actual weights add up to 100.01 %.
+
+**5. Apply them, and rebalancing again finds nothing to do.**
 
 ```elixir
 {:ok, portfolio} = Portfolio.apply_trades(portfolio, trades)
@@ -94,7 +115,7 @@ Portfolio.rebalance(portfolio, day_2)
 #=> {:ok, []}
 ```
 
-**5. Invalid input comes back as an error naming the rule**, never as an exception.
+**6. Invalid input comes back as an error naming the rule**, never as an exception.
 
 ```elixir
 Portfolio.new(
@@ -108,7 +129,7 @@ Portfolio.rebalance(portfolio, tl(day_2))   # a market without AAPL
 #=> {:error, {:missing_price, "AAPL"}}
 ```
 
-**6. Another share precision**: pass it as the third argument (`Portfolio.rebalance(portfolio, day_1, 0)` for whole shares), or set it for the whole session with `SHARE_PRECISION=2 iex -S mix`.
+**7. Another share precision**: pass it as the third argument (`Portfolio.rebalance(portfolio, day_1, 0)` for whole shares), or set it for the whole session with `SHARE_PRECISION=2 iex -S mix`.
 
 The errors, rules and invariants behind each of these are in [`design/domain-model.md`](design/domain-model.md).
 

@@ -11,15 +11,17 @@ defmodule Portfolio.Config do
 
   @doc "The configured share precision; #{@default_share_precision} if none was configured."
   @spec share_precision() :: non_neg_integer()
-  def share_precision,
-    do: Application.get_env(:portfolio, :share_precision, @default_share_precision)
+  def share_precision do
+    Application.get_env(:portfolio, :share_precision, @default_share_precision)
+  end
 
   @doc """
   Parses the raw value of `SHARE_PRECISION`: `nil` (unset) gives the default.
 
   The error is a message naming the variable, for the boot to stop with.
   """
-  @spec parse_share_precision(String.t() | nil) :: {:ok, non_neg_integer()} | {:error, String.t()}
+  @spec parse_share_precision(String.t() | nil) ::
+          {:ok, non_neg_integer()} | {:error, String.t()}
   def parse_share_precision(nil), do: {:ok, @default_share_precision}
 
   def parse_share_precision(raw) when is_binary(raw) do
@@ -29,7 +31,10 @@ defmodule Portfolio.Config do
         {:ok, precision}
 
       _ ->
-        {:error, "SHARE_PRECISION must be a whole number, 0 or more; got #{inspect(raw)}"}
+        {
+          :error,
+          "SHARE_PRECISION must be a whole number, 0 or more; got #{inspect(raw)}"
+        }
     end
   end
 end
